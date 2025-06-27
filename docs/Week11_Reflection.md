@@ -13,27 +13,31 @@
 
 ## ✍️ Section 1: Week 11 Reflection
 
-### Key Takeaways:
+### Key Takeaways
+
 - This week helped me see the full scope of the capstone—what’s expected and how we’ll build week by week.
 - It reminded me that good planning and file structure upfront saves a lot of stress later.
 - I feel more confident knowing I can mix features based on what I’m good at and what I want to get better at.
 - The project gives me a chance to apply everything I’ve learned so far in a way that’s creative and useful.
 - I also understand that submitting progress every week is part of the growth process—not just about having it “perfect.”
 
-### Concept Connections:
+### Concept Connections
+
 - I feel solid when it comes to writing functions, handling files, and working with basic APIs.
 - I’m comfortable using `.txt`, `.csv`, and `.json` formats for storing data.
 - I need more practice with Tkinter layouts and making things look clean and organized.
 - Embedding a chart using matplotlib is still something I’m figuring out.
 - I’m still wrapping my head around architecture patterns like MVC, but I’m trying to stay modular from the start.
 
-### Early Challenges:
+### Early Challenges
+
 - Making sure the API key is hidden correctly and not committed by accident.
 - Deciding where each feature should live and making sure the folders make sense.
 - Debugging early API requests and learning how to catch and display errors clearly.
 - Figuring out what should go in `config.py` versus `main.py` was a small hurdle at first.
 
-### Support Strategies:
+### Support Strategies
+
 - I plan to go to office hours, especially to get feedback on my graphing and layout.
 - I’ll keep using Slack if I get stuck—especially with plotting and file I/O.
 - Looking at past GitHub capstones helps me see how others organized their projects.
@@ -57,6 +61,7 @@
 My project follows a simple structure that makes it easy to build and test each feature:
 
 **Flow:**
+
 - User enters location → data is validated
 - Weather info is fetched using API
 - Info is passed to Tkinter app to show the results
@@ -64,6 +69,7 @@ My project follows a simple structure that makes it easy to build and test each 
 - An error handler makes sure things don’t crash if something goes wrong
 
 **Folders/Files:**
+
 - `main.py` runs the app
 - `config.py` holds keys and settings
 - `/features/` includes:
@@ -116,4 +122,3 @@ My project follows a simple structure that makes it easy to build and test each 
 - I may need a second pair of eyes on how I’m setting up the dark/light theme toggle.
 
 ---
-
