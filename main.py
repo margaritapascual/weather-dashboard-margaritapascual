@@ -1,84 +1,65 @@
-#Main app logic
 # main.py
 """Main application entry point"""
 
 import sys
 from pathlib import Path
 
-# Add project root to path
+# allow imports from project root
 sys.path.append(str(Path(__file__).parent))
 
+from config import Config
 from core import WeatherAPI, StorageManager, DataProcessor
 from gui import MainWindow
 from features import load_features
-import config
 
 class WeatherDashboardApp:
     """Main application controller"""
     
     def __init__(self):
-        # Initialize core modules
-        self.api = WeatherAPI(config.API_KEY)
-        self.storage = StorageManager()
+        # load everything from .env
+        cfg = Config.from_env()
+        
+        # Initialize core modules with cfg values
+        self.api       = WeatherAPI(api_key=cfg.api_key,
+                                    timeout=cfg.request_timeout)
+        self.storage   = StorageManager(db_path=cfg.database_path)
         self.processor = DataProcessor()
         
         # Initialize GUI
         self.window = MainWindow()
         
-        # Core modules dictionary for features
-        self.core_modules = {
-            'api': self.api,
-            'storage': self.storage,
-            'processor': self.processor
-        }
+        # Keep a ref to cfg for later if needed
+        self.cfg = cfg
         
-        # Initialize features
+        # Load features based on cfg.selected_features
         self.features = {}
-        self.initialize_features()
+        for feat in cfg.selected_features:
+            klass = load_features(feat)
+            if klass:
+                inst = klass({
+                    "api":       self.api,
+                    "storage":   self.storage,
+                    "processor": self.processor
+                })
+                inst.initialize(self.window.feature_frame)
+                self.features[feat] = inst
         
-        # Setup callbacks
-        self.setup_callbacks()
-    
-    def initialize_features(self):
-        """Load and initialize selected features"""
-        for feature_name in config.SELECTED_FEATURES:
-            feature_class = load_features(feature_name)
-            if feature_class:
-                feature = feature_class(self.core_modules)
-                self.features[feature_name] = feature
-                
-                # Create feature UI
-                feature.initialize(self.window.feature_frame)
-    
-    def setup_callbacks(self):
-        """Setup GUI callbacks"""
-        self.window.register_callback('search', self.handle_search)
+        # Setup GUI callbacks
+        self.window.register_callback('search',  self.handle_search)
         self.window.register_callback('refresh', self.handle_refresh)
     
     def handle_search(self, city: str):
-        """Handle weather search"""
-        # Fetch weather
-        raw_data = self.api.fetch_weather(city)
-        if not raw_data:
+        raw = self.api.fetch_weather(city)
+        if not raw:
             return
-        
-        # Process data
-        weather_data = self.processor.process_api_response(raw_data)
-        
-        # Save to storage
-        self.storage.save_weather(raw_data)
-        
-        # Update display
-        self.window.display_weather(weather_data)
-        
-        # Update features
-        for feature in self.features.values():
-            feature.update(weather_data)
+        processed = self.processor.process_api_response(raw)
+        self.storage.save_weather(raw)
+        self.window.display_weather(processed)
+        for feat in self.features.values():
+            feat.update(processed)
     
     def run(self):
-        """Start the application"""
         self.window.run()
 
 if __name__ == "__main__":
-    app = WeatherDashboardApp()
-    app.run()
+    WeatherDashboardApp().run()
