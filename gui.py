@@ -64,15 +64,14 @@ class MainWindow:
                 "description": data["weather"][0]["description"],
                 "icon":        data["weather"][0]["icon"]
             }
-            # store in DB
             self.storage.add_entry(parsed)
-
-            # back to main thread
             self.root.after(0, lambda: self._update_ui(parsed))
 
         except Exception as e:
-            print("Search error:", e)
-            self.root.after(0, lambda: self.show_error(f"Could not fetch '{city}'"))
+-           print("Search error, using no fallback:", e)
+-           self.root.after(0, lambda: self._update_ui(sample_parsed))
++           print("Search error:", e)
+            self.root.after(0, lambda: self.show_error(f"Could not fetch weather for '{city}'."))
 
     def _update_ui(self, parsed):
         # clear previous

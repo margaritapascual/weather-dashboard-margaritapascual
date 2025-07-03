@@ -1,16 +1,18 @@
+# core/weather_api.py
+
 import requests
 from requests.exceptions import RequestException
-from .sample_weather_data import get_sample_weather
 
 class WeatherAPI:
-    """Fetch current weather from OpenWeatherMap, with sample-data fallback."""
+    """Fetch current weather from OpenWeatherMap (no fallback)."""
     def __init__(self, api_key: str, timeout: int = 10, max_retries: int = 3):
-        self.api_key = api_key
-        self.timeout = timeout
+        self.api_key     = api_key
+        self.timeout     = timeout
         self.max_retries = max_retries
-        self.base_url = "http://api.openweathermap.org/data/2.5/weather"
+        self.base_url    = "http://api.openweathermap.org/data/2.5/weather"
 
     def fetch_current(self, city: str) -> dict:
+        """Fetch current weather or raise on any error."""
         params = {
             "q": city,
             "appid": self.api_key,
@@ -25,6 +27,5 @@ class WeatherAPI:
             except RequestException as e:
                 last_exc = e
                 # optionally log: print(f"[WeatherAPI] attempt {attempt} failed: {e}")
-        # all retries failed → fallback
-        print(f"[WeatherAPI] API failure after {self.max_retries} tries: {last_exc}")
-        return get_sample_weather(city)
+        # after retries, propagate the last exception
+        raise last_exc
