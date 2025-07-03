@@ -10,9 +10,9 @@ THEMES = {
 class ThemeSwitcher:
     """Attach to a root window to toggle light/dark themes."""
     def __init__(self, root: tk.Tk):
-        self.root = root
+        self.root    = root
         self.current = "light"
-        self.button = tk.Button(root, text="Toggle Theme", command=self.toggle)
+        self.button  = tk.Button(root, text="Toggle Theme", command=self.toggle)
         self.button.pack(pady=5)
 
     def apply(self):
@@ -21,7 +21,7 @@ class ThemeSwitcher:
             try:
                 w.config(bg=t["bg"], fg=t["fg"])
             except tk.TclError:
-                pass  # some widgets don’t support fg/bg
+                pass
 
     def toggle(self):
         self.current = "dark" if self.current == "light" else "light"

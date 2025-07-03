@@ -1,7 +1,6 @@
 # tests/test_config.py
 
 import os
-import tempfile
 import pytest
 from config import Config
 

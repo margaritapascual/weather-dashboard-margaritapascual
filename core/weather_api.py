@@ -26,6 +26,5 @@ class WeatherAPI:
                 return resp.json()
             except RequestException as e:
                 last_exc = e
-                # optionally log: print(f"[WeatherAPI] attempt {attempt} failed: {e}")
-        # after retries, propagate the last exception
+        # After retries, re-raise
         raise last_exc

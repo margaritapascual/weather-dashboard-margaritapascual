@@ -3,7 +3,6 @@
 import os
 import tkinter as tk
 
-# Map OpenWeatherMap icon codes to local PNG filenames
 ICON_MAP = {
     "01d": "sun.png",       "01n": "moon.png",
     "02d": "partly_cloudy.png", "02n": "partly_cloudy_night.png",
@@ -17,13 +16,11 @@ ICON_MAP = {
 }
 
 def load_icon(icon_code: str) -> tk.PhotoImage:
-    """Load a PhotoImage for the given icon_code."""
     fn = ICON_MAP.get(icon_code, "unknown.png")
     path = os.path.join(os.path.dirname(__file__), "icons", fn)
     return tk.PhotoImage(file=path)
 
 def show_weather_icon(parent: tk.Frame, icon_code: str):
-    """Place the weather icon in the given frame."""
     img = load_icon(icon_code)
     lbl = tk.Label(parent, image=img)
     lbl.image = img

@@ -1,5 +1,7 @@
 # core/weather_storage.py
 
+# core/weather_storage.py
+
 import sqlite3
 from typing import List, Dict
 

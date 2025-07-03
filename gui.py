@@ -50,8 +50,6 @@ class MainWindow:
         if not city:
             messagebox.showwarning("Input Error", "Please enter a city name.")
             return
-
-        # Run fetch+UI in background
         threading.Thread(target=self._do_search, args=(city,), daemon=True).start()
 
     def _do_search(self, city):
@@ -66,61 +64,23 @@ class MainWindow:
             }
             self.storage.add_entry(parsed)
             self.root.after(0, lambda: self._update_ui(parsed))
-
         except Exception as e:
             print("Search error:", e)
-            self.root.after(0, lambda: self.show_error(f"Could not fetch weather for '{city}'."))
+            self.root.after(0, lambda: self.show_error(f"Could not fetch '{city}'."))
 
     def _update_ui(self, parsed):
-        # clear previous feature widgets
         for w in self.feature_frame.winfo_children():
             w.destroy()
-
-        # display the new data
         self.error_lbl.config(text="")
         self.city_lbl.config(text=f"{parsed['city']}, {parsed['country']}")
         self.temp_lbl.config(text=f"{parsed['temperature']:.1f} °C")
         self.desc_lbl.config(text=parsed['description'].capitalize())
-
-        # show the weather icon
         show_weather_icon(self.feature_frame, parsed["icon"])
 
     def on_history(self):
         history = self.storage.get_last_n(7)
-
-        # clear frame
         for w in self.feature_frame.winfo_children():
             w.destroy()
-
-        # show history table and graph
-        show_history(self.feature_frame, history)
-        embed_temperature_graph(self.feature_frame, history)
-
-    def show_error(self, msg: str):
-        self.error_lbl.config(text=msg)
-
-    def run(self):
-        self.root.mainloop()
-
-
-        # display text
-        self.error_lbl.config(text="")
-        self.city_lbl.config(text=f"{parsed['city']}, {parsed['country']}")
-        self.temp_lbl.config(text=f"{parsed['temperature']:.1f} °C")
-        self.desc_lbl.config(text=parsed['description'].capitalize())
-
-        # icon
-        show_weather_icon(self.feature_frame, parsed["icon"])
-
-    def on_history(self):
-        # fetch last 7
-        history = self.storage.get_last_n(7)
-
-        # clear feature frame
-        for w in self.feature_frame.winfo_children():
-            w.destroy()
-
-        # table + chart
         show_history(self.feature_frame, history)
         embed_temperature_graph(self.feature_frame, history)
 
