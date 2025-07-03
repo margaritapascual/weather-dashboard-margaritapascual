@@ -1,13 +1,17 @@
 # core/weather_storage.py
 
-# core/weather_storage.py
-
+import os
 import sqlite3
 from typing import List, Dict
 
 class WeatherStorage:
     """SQLite-backed history of weather lookups."""
     def __init__(self, db_path: str):
+        # Ensure parent directory exists (so sqlite can create the file)
+        parent = os.path.dirname(db_path) or "."
+        os.makedirs(parent, exist_ok=True)
+
+        # Now connect
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self._create_table()
 
