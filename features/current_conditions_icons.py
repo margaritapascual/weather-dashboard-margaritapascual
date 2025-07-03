@@ -1,5 +1,3 @@
-# features/current_conditions_icons.py
-
 import os
 import tkinter as tk
 
@@ -16,13 +14,13 @@ ICON_MAP = {
 }
 
 def load_icon(icon_code: str) -> tk.PhotoImage:
-    fn = ICON_MAP.get(icon_code, "unknown.png")
+    fn   = ICON_MAP.get(icon_code, "unknown.png")
     path = os.path.join(os.path.dirname(__file__), "icons", fn)
     return tk.PhotoImage(file=path)
 
 def show_weather_icon(parent: tk.Frame, icon_code: str):
     img = load_icon(icon_code)
-    lbl = tk.Label(parent, image=img)
+    lbl = tk.Label(parent, image=img, bg=parent["bg"])
     lbl.image = img
     lbl.pack(pady=5)
     return lbl

@@ -12,19 +12,14 @@ class WeatherAPI:
         self.base_url    = "http://api.openweathermap.org/data/2.5/weather"
 
     def fetch_current(self, city: str) -> dict:
-        """Fetch current weather or raise on any error."""
-        params = {
-            "q": city,
-            "appid": self.api_key,
-            "units": "metric"
-        }
+        """Fetch current weather or raise on error."""
+        params = {"q": city, "appid": self.api_key, "units": "metric"}
         last_exc = None
-        for attempt in range(1, self.max_retries + 1):
+        for _ in range(self.max_retries):
             try:
                 resp = requests.get(self.base_url, params=params, timeout=self.timeout)
                 resp.raise_for_status()
                 return resp.json()
             except RequestException as e:
                 last_exc = e
-        # After retries, re-raise
         raise last_exc

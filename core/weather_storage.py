@@ -5,13 +5,10 @@ import sqlite3
 from typing import List, Dict
 
 class WeatherStorage:
-    """SQLite-backed history of weather lookups."""
+    """SQLite-backed history of weather lookups, now including icon."""
     def __init__(self, db_path: str):
-        # Ensure parent directory exists (so sqlite can create the file)
         parent = os.path.dirname(db_path) or "."
         os.makedirs(parent, exist_ok=True)
-
-        # Now connect
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self._create_table()
 
@@ -19,26 +16,32 @@ class WeatherStorage:
         with self.conn:
             self.conn.execute("""
                 CREATE TABLE IF NOT EXISTS history (
-                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                    city        TEXT    NOT NULL,
-                    country     TEXT,
-                    temperature REAL,
-                    description TEXT,
-                    timestamp   DATETIME DEFAULT CURRENT_TIMESTAMP
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    city          TEXT    NOT NULL,
+                    country       TEXT,
+                    temperature   REAL,
+                    humidity      REAL,
+                    precipitation REAL,
+                    description   TEXT,
+                    icon          TEXT,
+                    timestamp     DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             """)
 
     def add_entry(self, entry: Dict):
         with self.conn:
             self.conn.execute("""
-                INSERT INTO history (city, country, temperature, description)
-                VALUES (:city, :country, :temperature, :description)
+                INSERT INTO history
+                  (city, country, temperature, humidity, precipitation, description, icon)
+                VALUES
+                  (:city, :country, :temperature, :humidity, :precipitation, :description, :icon)
             """, entry)
 
     def get_last_n(self, n: int) -> List[Dict]:
         cur = self.conn.cursor()
         cur.execute("""
-            SELECT city, country, temperature, description, timestamp
+            SELECT city, country, temperature, humidity,
+                   precipitation, description, icon, timestamp
               FROM history
              ORDER BY timestamp DESC
              LIMIT ?
