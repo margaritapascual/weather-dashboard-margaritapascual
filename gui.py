@@ -2,8 +2,9 @@
 
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from datetime import datetime, timedelta
+import csv
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -42,7 +43,7 @@ class WeatherDashboard:
             text="☁️ Weather Dashboard",
             font=("Helvetica", 20, "bold"),
             background=self.root["bg"]
-        ).grid(row=0, column=0, columnspan=3, pady=10)
+        ).grid(row=0, column=0, columnspan=4, pady=10)
 
         # Controls frame
         ctrl = ttk.LabelFrame(self.root, text="Controls", padding=10)
@@ -76,39 +77,45 @@ class WeatherDashboard:
             .grid(row=4, column=0, sticky="ew", pady=10)
         ttk.Button(ctrl, text="🧹 Clear", command=self.on_clear_clicked)\
             .grid(row=4, column=1, sticky="ew", pady=10)
+        ttk.Button(ctrl, text="💾 Save", command=self.on_save_clicked)\
+            .grid(row=4, column=2, sticky="ew", pady=10)
 
         # Theme toggle
         self.theme = ThemeSwitcher(self.root)
-        self.theme.button.grid(row=1, column=2, padx=10, pady=10, sticky="ne")
+        self.theme.button.grid(row=1, column=3, padx=10, pady=10, sticky="ne")
 
         # Current weather display
         disp = ttk.LabelFrame(self.root, text="Current Weather", padding=10)
-        disp.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
+        disp.grid(row=1, column=1, columnspan=3, padx=10, pady=10, sticky="nsew")
         disp.columnconfigure(1, weight=1)
 
-        ttk.Label(disp, text="Temperature:").grid(row=0, column=0, sticky="w", pady=2)
+        ttk.Label(disp, text="Location:").grid(row=0, column=0, sticky="w", pady=2)
+        self.location_label = ttk.Label(disp, text="--")
+        self.location_label.grid(row=0, column=1, sticky="w", pady=2)
+
+        ttk.Label(disp, text="Temperature:").grid(row=1, column=0, sticky="w", pady=2)
         self.temp_label = ttk.Label(disp, text="--")
-        self.temp_label.grid(row=0, column=1, sticky="w", pady=2)
+        self.temp_label.grid(row=1, column=1, sticky="w", pady=2)
 
-        ttk.Label(disp, text="Humidity:").grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Label(disp, text="Humidity:").grid(row=2, column=0, sticky="w", pady=2)
         self.hum_label = ttk.Label(disp, text="--")
-        self.hum_label.grid(row=1, column=1, sticky="w", pady=2)
+        self.hum_label.grid(row=2, column=1, sticky="w", pady=2)
 
-        ttk.Label(disp, text="Conditions:").grid(row=2, column=0, sticky="w", pady=2)
+        ttk.Label(disp, text="Conditions:").grid(row=3, column=0, sticky="w", pady=2)
         self.cond_label = ttk.Label(disp, text="--")
-        self.cond_label.grid(row=2, column=1, sticky="w", pady=2)
+        self.cond_label.grid(row=3, column=1, sticky="w", pady=2)
 
-        ttk.Label(disp, text="Precipitation:").grid(row=3, column=0, sticky="w", pady=2)
+        ttk.Label(disp, text="Precipitation:").grid(row=4, column=0, sticky="w", pady=2)
         self.precip_label = ttk.Label(disp, text="--")
-        self.precip_label.grid(row=3, column=1, sticky="w", pady=2)
+        self.precip_label.grid(row=4, column=1, sticky="w", pady=2)
 
-        # Icon container (no explicit background arg)
+        # Icon container
         self.icon_container = tk.Frame(disp)
-        self.icon_container.grid(row=4, column=0, columnspan=2, pady=5)
+        self.icon_container.grid(row=5, column=0, columnspan=2, pady=5)
 
         # Chart and history frame
         viz = ttk.LabelFrame(self.root, text="📊 Weather Trends", padding=10)
-        viz.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
+        viz.grid(row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
         viz.columnconfigure(0, weight=1)
         viz.rowconfigure(1, weight=1)
 
@@ -133,10 +140,50 @@ class WeatherDashboard:
             return
         threading.Thread(target=self._fetch_and_update, args=(city,), daemon=True).start()
 
+    def on_save_clicked(self):
+        city = self.city_var.get().strip()
+        if not city:
+            messagebox.showwarning("Input Error", "Please enter a city before saving.")
+            return
+        # Gather history for this city and date range
+        history = self.storage.get_last_n(30)
+        recs = [r for r in history if r["city"].lower() == city.lower()]
+        if not recs:
+            messagebox.showinfo("No Data", f"No history to save for '{city}'.")
+            return
+        start, end = self.get_date_range()
+        plot_data = [
+            r for r in recs
+            if start <= datetime.fromisoformat(r["timestamp"]) <= end
+        ]
+        # Prompt for filename
+        fname = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        if not fname:
+            return
+        try:
+            with open(fname, 'w', newline='') as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        'timestamp','city','country','temperature',
+                        'humidity','description','precipitation'
+                    ]
+                )
+                writer.writeheader()
+                for row in plot_data:
+                    writer.writerow(row)
+            messagebox.showinfo("Saved", f"History saved to {fname}")
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Failed to save file:\n{e}")
+
     def _fetch_and_update(self, city):
         try:
             raw = self.api.fetch_current(city)
             parsed = {
+                "timestamp": datetime.now().isoformat(),
                 "city":          raw["name"],
                 "country":       raw["sys"]["country"],
                 "temperature":   raw["main"]["temp"],
@@ -163,68 +210,4 @@ class WeatherDashboard:
 
     def on_clear_clicked(self):
         self.city_var.set("")
-        for lbl in (self.temp_label, self.hum_label, self.cond_label, self.precip_label):
-            lbl.config(text="--")
-        self.ax.clear()
-        self.canvas.draw()
-        for widget in self.history_frame.winfo_children():
-            widget.destroy()
-        for widget in self.icon_container.winfo_children():
-            widget.destroy()
 
-    def get_date_range(self):
-        days = int(self.date_range_var.get().split()[0])
-        end   = datetime.now()
-        start = end - timedelta(days=days - 1)
-        return start, end
-
-    def update_display(self):
-        city = self.city_var.get().strip()
-        if not city:
-            return
-
-        history = self.storage.get_last_n(30)
-        recs = [r for r in history if r["city"].lower() == city.lower()]
-        if not recs:
-            messagebox.showinfo("No Data", f"No history for '{city}'. Click Update first.")
-            return
-
-        latest = recs[0]
-
-        # Update labels
-        unit = self.temperature_unit.get()
-        temp = latest["temperature"]
-        temp = temp * 9/5 + 32 if unit == "F" else temp
-        self.temp_label.config(text=f"{temp:.1f}°{unit}")
-        self.hum_label.config(text=f"{latest['humidity']}%")
-        self.cond_label.config(text=latest["description"].capitalize())
-        self.precip_label.config(text=f"{latest['precipitation']} mm")
-
-        # Update icon (now guaranteed to exist)
-        for w in self.icon_container.winfo_children():
-            w.destroy()
-        show_weather_icon(self.icon_container, latest["icon"])
-
-        # Update history table
-        for w in self.history_frame.winfo_children():
-            w.destroy()
-        show_history(self.history_frame, recs[:7])
-
-        # Update chart
-        start, end = self.get_date_range()
-        plot_data = [
-            r for r in recs
-            if start <= datetime.fromisoformat(r["timestamp"]) <= end
-        ]
-        plot_data = list(reversed(plot_data))
-
-        dates = [datetime.fromisoformat(r["timestamp"]) for r in plot_data]
-        temps = [r["temperature"] for r in plot_data]
-
-        self.ax.clear()
-        self.ax.plot(dates, temps, marker="o")
-        self.ax.set_title(f"{city.title()} Temperature (Last {len(dates)} Days)")
-        self.ax.set_ylabel("°C")
-        self.ax.tick_params(axis="x", rotation=45, labelsize=8)
-        self.figure.tight_layout()
-        self.canvas.draw()
