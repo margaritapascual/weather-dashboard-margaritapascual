@@ -1,20 +1,16 @@
-# main.py
-
-import tkinter as tk
+from tkinter import Tk
 from config import Config
-from core.weather_api     import WeatherAPI
+from core.weather_api import WeatherAPI
 from core.weather_storage import WeatherStorage
-from gui                  import WeatherDashboard
+from gui import WeatherGUI
 
 def main():
     cfg     = Config.from_env()
-    storage = WeatherStorage(cfg.database_path)
-    api     = WeatherAPI(cfg.api_key,
-                         timeout=cfg.request_timeout,
-                         max_retries=cfg.max_retries)
+    api     = WeatherAPI(cfg.api_key, timeout=cfg.request_timeout)
+    storage = WeatherStorage(cfg.db_path)
 
-    root = tk.Tk()
-    app  = WeatherDashboard(root, cfg, storage, api)
+    root = Tk()
+    WeatherGUI(root, api, storage, cfg)
     root.mainloop()
 
 if __name__ == "__main__":

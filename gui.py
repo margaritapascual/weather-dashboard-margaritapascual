@@ -1,263 +1,151 @@
-# gui.py
-
-import threading
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-from datetime import datetime, timedelta
-import csv
-
-from matplotlib.figure import Figure
+from tkinter import ttk
+from PIL import Image, ImageTk
+import requests
+from io import BytesIO
+from datetime import datetime
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from features.current_conditions_icons import show_weather_icon
-from features.theme_switcher         import ThemeSwitcher
-from features.weather_alerts         import check_alerts
-from features.historical_data        import show_history
-from features.temperature_graph      import embed_temperature_graph
-
-class WeatherDashboard:
-    def __init__(self, root, cfg, storage, api):
-        self.root    = root
-        self.cfg     = cfg
+class WeatherGUI:
+    def __init__(self, root, api, storage, config):
+        self.root = root
+        self.api = api
         self.storage = storage
-        self.api     = api
+        self.config = config
+        self.icon_images = []
+        self._build_ui()
+        self._load_and_display()
 
-        # Window setup
-        self.root.title("🌦️ Weather Dashboard")
-        self.root.geometry("960x720")
-        self.root.configure(bg="#f0f4f7")
+    def _build_ui(self):
+        self.root.title("Weather Dashboard")
+        self.root.geometry("900x600")
 
-        # State variables
-        self.city_var         = tk.StringVar()
-        self.date_range_var   = tk.StringVar(value="7 days")
-        self.temperature_unit = tk.StringVar(value="F")
-        self.show_humidity    = tk.BooleanVar(value=True)
-
-        # Build UI
-        self.create_widgets()
-
-    def create_widgets(self):
-        # Title
-        ttk.Label(
-            self.root,
-            text="☁️ Weather Dashboard",
-            font=("Helvetica", 20, "bold"),
-            background=self.root["bg"]
-        ).grid(row=0, column=0, columnspan=4, pady=10)
-
-        # Controls frame
-        ctrl = ttk.LabelFrame(self.root, text="Controls", padding=10)
-        ctrl.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
-        ctrl.columnconfigure(1, weight=1)
-
-        ttk.Label(ctrl, text="City:").grid(row=0, column=0, sticky="w", pady=5)
-        ttk.Entry(ctrl, textvariable=self.city_var).grid(row=0, column=1, sticky="ew", pady=5)
-
-        ttk.Label(ctrl, text="Date Range:").grid(row=1, column=0, sticky="w", pady=5)
-        ttk.Combobox(
-            ctrl,
-            textvariable=self.date_range_var,
-            values=["1 day", "7 days", "30 days"],
-            state="readonly"
-        ).grid(row=1, column=1, sticky="ew", pady=5)
-
-        ttk.Label(ctrl, text="Units:").grid(row=2, column=0, sticky="w")
-        ttk.Radiobutton(ctrl, text="°F", variable=self.temperature_unit, value="F").grid(row=2, column=1, sticky="w")
-        ttk.Radiobutton(ctrl, text="°C", variable=self.temperature_unit, value="C").grid(row=2, column=2, sticky="w")
-
-        ttk.Checkbutton(
-            ctrl,
-            text="Show Humidity",
-            variable=self.show_humidity
-        ).grid(row=3, column=0, columnspan=3, sticky="w", pady=5)
-
-        ttk.Button(ctrl, text="🔄 Update", command=self.on_update_clicked).grid(row=4, column=0, sticky="ew", pady=10)
-        ttk.Button(ctrl, text="🧹 Clear", command=self.on_clear_clicked).grid(row=4, column=1, sticky="ew", pady=10)
-        ttk.Button(ctrl, text="💾 Save",  command=self.on_save_clicked).grid(row=4, column=2, sticky="ew", pady=10)
-
-        # Theme toggle
-        self.theme = ThemeSwitcher(self.root)
-        self.theme.button.grid(row=1, column=3, padx=10, pady=10, sticky="ne")
-
-        # Current weather display
-        disp = ttk.LabelFrame(self.root, text="Current Weather", padding=10)
-        disp.grid(row=1, column=1, columnspan=3, padx=10, pady=10, sticky="nsew")
-        disp.columnconfigure(1, weight=1)
-
-        ttk.Label(disp, text="Location:").grid(row=0, column=0, sticky="w", pady=2)
-        self.location_label = ttk.Label(disp, text="--")
-        self.location_label.grid(row=0, column=1, sticky="w", pady=2)
-
-        ttk.Label(disp, text="Temperature:").grid(row=1, column=0, sticky="w", pady=2)
-        self.temp_label = ttk.Label(disp, text="--")
-        self.temp_label.grid(row=1, column=1, sticky="w", pady=2)
-
-        ttk.Label(disp, text="Humidity:").grid(row=2, column=0, sticky="w", pady=2)
-        self.hum_label = ttk.Label(disp, text="--")
-        self.hum_label.grid(row=2, column=1, sticky="w", pady=2)
-
-        ttk.Label(disp, text="Conditions:").grid(row=3, column=0, sticky="w", pady=2)
-        self.cond_label = ttk.Label(disp, text="--")
-        self.cond_label.grid(row=3, column=1, sticky="w", pady=2)
-
-        ttk.Label(disp, text="Precipitation:").grid(row=4, column=0, sticky="w", pady=2)
-        self.precip_label = ttk.Label(disp, text="--")
-        self.precip_label.grid(row=4, column=1, sticky="w", pady=2)
-
-        # Icon container with fixed size to constrain icon dimensions
-        self.icon_container = tk.Frame(disp, width=50, height=50)
-        self.icon_container.grid(row=5, column=0, columnspan=2, pady=5)
-        self.icon_container.grid_propagate(False)
-
-        # Chart and history frame
-        viz = ttk.LabelFrame(self.root, text="📊 Weather Trends", padding=10)
-        viz.grid(row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
-        viz.columnconfigure(0, weight=1)
-        viz.rowconfigure(1, weight=1)
-
-        # History table
-        self.history_frame = ttk.Frame(viz)
-        self.history_frame.grid(row=0, column=0, sticky="nsew", pady=(0,10))
-
-        # Chart canvas
-        self.figure = Figure(figsize=(8,4), dpi=100)
-        self.ax     = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, viz)
-        self.canvas.get_tk_widget().grid(row=1, column=0, sticky="nsew")
-
-        # Layout weights on root
-        self.root.columnconfigure(1, weight=1)
-        self.root.rowconfigure(2, weight=1)
-
-    def on_update_clicked(self):
-        city = self.city_var.get().strip()
-        if not city:
-            messagebox.showwarning("Input Error", "Please enter a city.")
-            return
-        threading.Thread(target=self._fetch_and_update, args=(city,), daemon=True).start()
-
-    def on_save_clicked(self):
-        city = self.city_var.get().strip()
-        if not city:
-            messagebox.showwarning("Input Error", "Please enter a city before saving.")
-            return
-        history = self.storage.get_last_n(30)
-        recs = [r for r in history if r["city"].lower() == city.lower()]
-        if not recs:
-            messagebox.showinfo("No Data", f"No history to save for '{city}'.")
-            return
-        start, end = self.get_date_range()
-        plot_data = [
-            r for r in recs
-            if start <= datetime.fromisoformat(r["timestamp"]) <= end
-        ]
-        fname = filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-        if not fname:
-            return
+        # Background: image if present, otherwise solid color
         try:
-            with open(fname, 'w', newline='') as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=[
-                        'timestamp','city','country','temperature',
-                        'humidity','description','precipitation'
-                    ]
-                )
-                writer.writeheader()
-                for row in plot_data:
-                    writer.writerow(row)
-            messagebox.showinfo("Saved", f"History saved to {fname}")
-        except Exception as e:
-            messagebox.showerror("Save Error", f"Failed to save file:\n{e}")
+            bg = Image.open("bg.png").resize((900,600))
+            self._bg_photo = ImageTk.PhotoImage(bg)
+            lbl = tk.Label(self.root, image=self._bg_photo)
+            lbl.place(x=0, y=0, relwidth=1, relheight=1)
+        except FileNotFoundError:
+            self.root.configure(bg="#E0F7FA")
 
-    def _fetch_and_update(self, city):
+        # Top controls
+        ctrl = tk.Frame(self.root, bg="", pady=10)
+        ctrl.pack(fill="x")
+        tk.Label(ctrl, text="City:", bg="").pack(side="left", padx=5)
+        self.city_var = tk.StringVar(value="New York")
+        tk.Entry(ctrl, textvariable=self.city_var, width=20).pack(side="left")
+        tk.Button(ctrl, text="Update", command=self._reload).pack(side="left", padx=5)
+
+        # 7-day forecast frame
+        self.forcast_frame = tk.Frame(self.root, bg="", pady=5)
+        self.forcast_frame.pack(fill="x")
+
+        # Trend buttons
+        btn_frame = tk.Frame(self.root)
+        btn_frame.pack(pady=5)
+        for period in ("Daily","Weekly","Monthly"):
+            tk.Button(btn_frame, text=period,
+                      command=lambda p=period: self._plot_trend(p))\
+              .pack(side="left", padx=5)
+
+        # Chart area
+        self.chart_frame = tk.Frame(self.root)
+        self.chart_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def _reload(self):
+        for w in self.forcast_frame.winfo_children(): w.destroy()
+        for w in self.chart_frame.winfo_children(): w.destroy()
+        self._load_and_display()
+
+    def _load_and_display(self):
+        city = self.city_var.get()
         try:
-            raw = self.api.fetch_current(city)
-            parsed = {
-                "timestamp": datetime.now().isoformat(),
-                "city":      raw["name"],
-                "country":   raw["sys"]["country"],
-                "temperature": raw["main"]["temp"],
-                "humidity":    raw["main"]["humidity"],
-                "description": raw["weather"][0]["description"],
-                "icon":        raw["weather"][0]["icon"],
-                "precipitation": raw.get("rain", {}).get("1h", 0.0)
-            }
-            check_alerts(
-                self.root,
-                parsed["temperature"],
-                self.cfg.alert_threshold_high,
-                self.cfg.alert_threshold_low
-            )
-            self.storage.add_entry(parsed)
-            self.root.after(0, self.update_display)
+            lat, lon = self._geocode(city)
+            daily = self.api.get_daily(lat, lon, days=7)
+
+            # save today's precip & humidity
+            today = daily[0]
+            ds = datetime.utcfromtimestamp(today["dt"]).strftime("%Y-%m-%d")
+            precip = today.get("rain", 0.0)
+            hum = today["humidity"]
+            self.storage.save_daily(ds, precip, hum)
+
+            self._show_7day(daily)
+            self._plot_trend("Daily")
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror(
-                "Fetch Error", f"Could not fetch weather for '{city}'.\n{e}"))
+            tk.messagebox.showerror("Error", str(e))
 
-    def on_clear_clicked(self):
-        self.city_var.set("")
-        self.location_label.config(text="--")
-        for lbl in (self.temp_label, self.hum_label, self.cond_label, self.precip_label):
-            lbl.config(text="--")
-        self.ax.clear()
-        self.canvas.draw()
-        for widget in self.history_frame.winfo_children():
-            widget.destroy()
-        for widget in self.icon_container.winfo_children():
-            widget.destroy()
+    def _geocode(self, city: str) -> tuple[float,float]:
+        url = "http://api.openweathermap.org/geo/1.0/direct"
+        r = requests.get(url,
+                         params={"q": city, "limit": 1, "appid": self.config.api_key},
+                         timeout=self.config.request_timeout)
+        r.raise_for_status()
+        data = r.json()
+        if not data:
+            raise ValueError(f"City '{city}' not found")
+        return data[0]["lat"], data[0]["lon"]
 
-    def get_date_range(self):
-        days = int(self.date_range_var.get().split()[0])
-        end   = datetime.now()
-        start = end - timedelta(days=days - 1)
-        return start, end
+    def _show_7day(self, daily: list[dict]):
+        self.icon_images.clear()
+        for idx, day in enumerate(daily):
+            frm = tk.Frame(self.forcast_frame, padx=10)
+            frm.pack(side="left", expand=True)
+            wd = datetime.utcfromtimestamp(day["dt"]).strftime("%a")
+            tk.Label(frm, text=wd).pack()
+            ic = day["weather"][0]["icon"]
+            img = self._fetch_icon(ic)
+            lbl = tk.Label(frm, image=img)
+            lbl.image = img
+            lbl.pack()
+            tk.Label(frm, text=f"{round(day['temp']['day'])}°C").pack()
+            self.icon_images.append(img)
 
-    def update_display(self):
-        city = self.city_var.get().strip()
-        if not city:
-            return
+    def _fetch_icon(self, code: str) -> ImageTk.PhotoImage:
+        url = f"http://openweathermap.org/img/wn/{code}@2x.png"
+        r = requests.get(url, timeout=self.config.request_timeout)
+        img = Image.open(BytesIO(r.content)).resize((50,50))
+        return ImageTk.PhotoImage(img)
 
-        history = self.storage.get_last_n(30)
-        recs = [r for r in history if r["city"].lower() == city.lower()]
-        if not recs:
-            messagebox.showinfo("No Data", f"No history for '{city}'. Click Update first.")
-            return
+    def _plot_trend(self, period: str):
+        for w in self.chart_frame.winfo_children(): w.destroy()
 
-        latest = recs[0]
-        # Update location
-        self.location_label.config(text=f"{latest['city']}, {latest['country']}")
-        # Display current
-        unit = self.temperature_unit.get()
-        temp = latest["temperature"]
-        temp = temp * 9/5 + 32 if unit == "F" else temp
-        self.temp_label.config(text=f"{temp:.1f}°{unit}")
-        self.hum_label.config(text=f"{latest['humidity']}%")
-        self.cond_label.config(text=latest["description"].capitalize())
-        self.precip_label.config(text=f"{latest['precipitation']} mm")
+        rows = self.storage.get_history(30)
+        dates, precs, hums = zip(*rows)
 
-        # Update icon
-        for w in self.icon_container.winfo_children():
-            w.destroy()
-        show_weather_icon(self.icon_container, latest["icon"])
+        if period == "Weekly":
+            dates, precs, hums = self._aggregate_weekly(dates, precs, hums)
+        # Monthly = full 30 days; Daily = last 7 days
+        elif period == "Daily":
+            dates, precs, hums = dates[-7:], precs[-7:], hums[-7:]
 
-        # Update history table based on date range
-        days = int(self.date_range_var.get().split()[0])
-        # Filter and slice
-        start, end = self.get_date_range()
-        filtered = [r for r in recs if start <= datetime.fromisoformat(r["timestamp"]) <= end]
-        show_history(self.history_frame, filtered[:days])
+        fig, ax1 = plt.subplots(figsize=(8,3))
+        ax2 = ax1.twinx()
+        ax1.bar(dates, precs, alpha=0.6, label="Precip (mm)")
+        ax2.plot(dates, hums, "-o", label="Humidity (%)")
+        ax1.set_ylabel("Precip (mm)")
+        ax2.set_ylabel("Humidity (%)")
+        ax1.set_title(f"{period} Precip vs Humidity")
+        fig.autofmt_xdate(rotation=45)
 
-        # Update chart
-        dates = [datetime.fromisoformat(r["timestamp"]) for r in filtered]
-        temps = [r["temperature"] for r in filtered]
-        self.ax.clear()
-        self.ax.plot(dates, temps, marker="o")
-        self.ax.set_title(f"{city.title()} Temperature ({self.date_range_var.get()})")
-        self.ax.set_ylabel("°C")
-        self.ax.tick_params(axis="x", rotation=45, labelsize=8)
-        self.figure.tight_layout()
-        self.canvas.draw()
+        # legends
+        h1, l1 = ax1.get_legend_handles_labels()
+        h2, l2 = ax2.get_legend_handles_labels()
+        ax1.legend(h1+h2, l1+l2, loc="upper left")
+
+        canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        canvas.draw()
+
+    def _aggregate_weekly(self, dates, precs, hums):
+        weeks = []
+        for i in range(0, len(dates), 7):
+            chunk_d = dates[i:i+7]
+            chunk_p = precs[i:i+7]
+            chunk_h = hums[i:i+7]
+            label = f"W{(i//7)+1}"
+            weeks.append((label, sum(chunk_p), sum(chunk_h)/len(chunk_h)))
+        ws, ps, hs = zip(*weeks)
+        return ws, ps, hs
