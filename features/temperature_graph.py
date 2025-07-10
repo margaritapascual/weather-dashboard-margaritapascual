@@ -1,5 +1,3 @@
-# features/temperature_graph.py
-
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 

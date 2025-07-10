@@ -1,5 +1,3 @@
-# features/theme_switcher.py
-
 import tkinter as tk
 
 # Define your two teal themes

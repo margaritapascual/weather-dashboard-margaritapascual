@@ -1,5 +1,3 @@
-# features/historical_data.py
-
 import tkinter as tk
 from tkinter import ttk
 

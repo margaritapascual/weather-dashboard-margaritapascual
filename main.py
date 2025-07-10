@@ -1,18 +1,25 @@
-from tkinter import Tk
+# main.py
+
+import tkinter as tk
 from config import Config
 from core.weather_api import WeatherAPI
 from core.weather_storage import WeatherStorage
 from gui import WeatherGUI
 
 def main():
-    # Load configuration (with dotenv fallback)
+    # Load configuration
     cfg = Config.from_env()
-    print("▶︎ Loaded API key:", cfg.api_key)  # Debug: show which key is in use
 
-    api = WeatherAPI(cfg.api_key, timeout=cfg.request_timeout)
+    # Initialize API client and storage
+    api     = WeatherAPI(cfg.api_key, cfg.request_timeout)
     storage = WeatherStorage(cfg.db_path)
 
-    root = Tk()
+    # Create and size the root window
+    root = tk.Tk()
+    root.title("Weather Dashboard")
+    root.geometry("900x600")    # ensure it's large enough to see
+
+    # Build and run the GUI
     WeatherGUI(root, api, storage, cfg)
     root.mainloop()
 
