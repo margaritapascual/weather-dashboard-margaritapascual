@@ -26,19 +26,21 @@ class WeatherGUI:
         self._load_and_display()
 
     def _build_ui(self):
+        # ─── Alert banner at top ───
+        self.banner_frame = tk.Frame(self.root)
+        self.banner_frame.pack(fill="x")
+        self.banner_label = tk.Label(self.banner_frame, text="", cursor="hand2")
+        self.banner_label.pack(fill="x")
+
         # ─── Top toolbar ───
         self.ctrl = tk.Frame(self.root, pady=10)
         self.ctrl.pack(fill="x")
-
         tk.Label(self.ctrl, text="City:").pack(side="left", padx=5)
         self.city_var = tk.StringVar(value="New York")
         tk.Entry(self.ctrl, textvariable=self.city_var, width=20)\
             .pack(side="left")
-
         tk.Button(self.ctrl, text="Update", command=self._reload)\
             .pack(side="left", padx=5)
-
-        # New: Toggle Theme button
         tk.Button(self.ctrl, text="Toggle Theme", command=self._toggle_theme)\
             .pack(side="left", padx=5)
 
@@ -46,18 +48,9 @@ class WeatherGUI:
         self.container = tk.Frame(self.root)
         self.container.pack(fill="both", expand=True)
 
-        # Left: current conditions + alerts
+        # Left: current conditions
         self.current_frame = tk.Frame(self.container, width=140)
         self.current_frame.pack(side="left", fill="y", padx=5, pady=5)
-
-        # Sidebar alert label (persistent)
-        self.sidebar_alert = tk.Label(
-            self.current_frame,
-            text="",
-            wraplength=120,
-            justify="center"
-        )
-        self.sidebar_alert.pack(pady=(0,10))
 
         # Right: forecast + controls + chart
         self.right = tk.Frame(self.container)
@@ -89,12 +82,12 @@ class WeatherGUI:
         self._apply_theme(new_theme)
 
     def _apply_theme(self, theme_name):
-        """Recolor panels and labels; leave buttons default for readability."""
         th = THEMES[theme_name]
         self.current_theme = theme_name
 
-        # Root background
-        self.root.configure(bg=th["bg"])
+        # Banner
+        self.banner_frame.configure(bg=th["bg"])
+        self.banner_label.configure(bg=th["bg"], fg=th["fg"])
 
         # Toolbar
         self.ctrl.configure(bg=th["bg"])
@@ -102,12 +95,13 @@ class WeatherGUI:
             if isinstance(w, (tk.Label, tk.Entry)):
                 w.configure(bg=th["bg"], fg=th["fg"])
 
-        # Container & sidebar
+        # Container
         self.container.configure(bg=th["bg"])
+
+        # Sidebar
         self.current_frame.configure(bg=th["bg"])
-        self.sidebar_alert.configure(bg=th["bg"], fg=th["fg"])
         for w in self.current_frame.winfo_children():
-            if isinstance(w, tk.Label) and w is not self.sidebar_alert:
+            if isinstance(w, tk.Label):
                 w.configure(bg=th["bg"], fg=th["fg"])
 
         # Forecast strip
@@ -117,7 +111,7 @@ class WeatherGUI:
 
         # Buttons row
         self.btn_frame.configure(bg=th["bg"])
-        # Buttons remain default styled so their text stays visible
+        # leave buttons default styled
 
         # Chart area
         self.chart_frame.configure(bg=th["bg"])
@@ -128,32 +122,27 @@ class WeatherGUI:
                 w.configure(style="Treeview")
 
     def _reload(self):
-        # Clear forecast, chart, and current‐conditions content (but not sidebar_alert)
+        # Clear only the frames we redraw
         for frame in (self.current_frame, self.forecast_frame, self.chart_frame):
-            for w in frame.winfo_children():
-                if w is self.sidebar_alert:
-                    continue
+            for w in list(frame.winfo_children()):
                 w.destroy()
-
         # Reapply theme to new widgets
         self._apply_theme(self.current_theme)
-
         # Fetch & redraw
         self._load_and_display()
 
     def _load_and_display(self):
         city = self.city_var.get()
         try:
-            # Geocode & fetch
             lat, lon = self._geocode(city)
             current = self.api.get_current(lat, lon)
             daily   = self.api.get_daily(lat, lon, days=7)
             alerts  = self.api.get_alerts(lat, lon)
 
-            # Show alerts in sidebar
-            show_alerts(self.sidebar_alert, alerts, THEMES[self.current_theme])
+            # Show alerts in the top banner
+            show_alerts(self.banner_label, alerts, THEMES[self.current_theme])
 
-            # Save history
+            # Save today’s record
             today  = daily[0]
             ds     = datetime.utcfromtimestamp(today["dt"]).strftime("%Y-%m-%d")
             precip = today.get("rain", 0.0)
@@ -164,12 +153,17 @@ class WeatherGUI:
 
             # Sidebar: current conditions
             show_weather_icon(self.current_frame, current["weather"][0]["icon"], size=(50,50))
-            tk.Label(self.current_frame, text=f"{round(current['temp'])}°F", font=("Helvetica",14))\
+            tk.Label(self.current_frame, text=f"{round(current['temp'])}°F",
+                     font=("Helvetica",14), bg=self.current_frame["bg"], fg=THEMES[self.current_theme]["fg"])\
                 .pack(pady=(5,0))
-            tk.Label(self.current_frame, text=f"Humidity: {current['humidity']}%").pack()
-            tk.Label(self.current_frame, text=f"UV Index: {current['uvi']}").pack(pady=(0,5))
+            tk.Label(self.current_frame, text=f"Humidity: {current['humidity']}%",
+                     bg=self.current_frame["bg"], fg=THEMES[self.current_theme]["fg"])\
+                .pack()
+            tk.Label(self.current_frame, text=f"UV Index: {current['uvi']}",
+                     bg=self.current_frame["bg"], fg=THEMES[self.current_theme]["fg"])\
+                .pack(pady=(0,5))
 
-            # Forecast + default trend
+            # Forecast strip & default chart
             self._show_7day(daily)
             self._plot_trend("Daily")
 
@@ -182,11 +176,8 @@ class WeatherGUI:
 
     def _geocode(self, city: str):
         url = "http://api.openweathermap.org/geo/1.0/direct"
-        r = requests.get(
-            url,
-            params={"q": city, "limit": 1, "appid": self.config.api_key},
-            timeout=self.config.request_timeout
-        )
+        r = requests.get(url, params={"q": city, "limit": 1, "appid": self.config.api_key},
+                         timeout=self.config.request_timeout)
         r.raise_for_status()
         data = r.json()
         if not data:
@@ -196,15 +187,16 @@ class WeatherGUI:
     def _show_7day(self, daily):
         self.icon_images = []
         for day in daily:
-            frm = tk.Frame(self.forecast_frame, padx=10)
+            frm = tk.Frame(self.forecast_frame, padx=10, bg=self.forecast_frame["bg"])
             frm.pack(side="left", expand=True)
             wd = datetime.utcfromtimestamp(day["dt"]).strftime("%a")
-            tk.Label(frm, text=wd).pack()
+            tk.Label(frm, text=wd, bg=frm["bg"], fg=THEMES[self.current_theme]["fg"]).pack()
             img = load_icon(day["weather"][0]["icon"], size=(50,50))
-            lbl = tk.Label(frm, image=img)
+            lbl = tk.Label(frm, image=img, bg=frm["bg"])
             lbl.image = img
             lbl.pack()
-            tk.Label(frm, text=f"{round(day['temp']['day'])}°F").pack()
+            tk.Label(frm, text=f"{round(day['temp']['day'])}°F", bg=frm["bg"],
+                     fg=THEMES[self.current_theme]["fg"]).pack()
             self.icon_images.append(img)
 
     def _plot_trend(self, period: str):
