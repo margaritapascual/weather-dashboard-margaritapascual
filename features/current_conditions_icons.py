@@ -1,9 +1,13 @@
+# features/current_conditions_icons.py
+
 import os
 import tkinter as tk
+from PIL import Image, ImageTk
 
+# map OWM codes → your local icon filenames
 ICON_MAP = {
     "01d": "sun.png",       "01n": "moon.png",
-    "02d": "partly_cloudy.png", "02n": "partly_cloudy_night.png",
+    "02d": "partly_cloudy.png",    "02n": "partly_cloudy_night.png",
     "03d": "cloud.png",     "03n": "cloud.png",
     "04d": "cloudy.png",    "04n": "cloudy.png",
     "09d": "rain.png",      "09n": "rain.png",
@@ -13,13 +17,34 @@ ICON_MAP = {
     "50d": "mist.png",      "50n": "mist.png",
 }
 
-def load_icon(icon_code: str) -> tk.PhotoImage:
-    fn   = ICON_MAP.get(icon_code, "unknown.png")
-    path = os.path.join(os.path.dirname(__file__), "icons", fn)
-    return tk.PhotoImage(file=path)
+# compute your project-root icons folder
+_THIS_DIR   = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(_THIS_DIR, os.pardir))
+ICONS_DIR   = os.path.join(PROJECT_ROOT, "icons")
 
-def show_weather_icon(parent: tk.Frame, icon_code: str):
-    img = load_icon(icon_code)
+def load_icon(icon_code: str, size=(50,50)) -> ImageTk.PhotoImage:
+    """
+    1) Load the local icon at <project>/icons/<filename>.
+    2) If missing, immediately raise FileNotFoundError so you spot it.
+    Returns a PhotoImage resized to `size`.
+    """
+    fn   = ICON_MAP.get(icon_code)
+    if not fn:
+        raise KeyError(f"No mapping for icon code '{icon_code}' in ICON_MAP")
+    path = os.path.join(ICONS_DIR, fn)
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Expected icon file not found: {path}")
+
+    img = Image.open(path).resize(size, Image.LANCZOS)
+    return ImageTk.PhotoImage(img)
+
+def show_weather_icon(parent: tk.Frame, icon_code: str, size=(50,50)) -> tk.Label:
+    """
+    Pack a Label into `parent` with the icon for `icon_code`.
+    Returns the Label (so you can place text next to it, etc.).
+    """
+    img = load_icon(icon_code, size=size)
     lbl = tk.Label(parent, image=img, bg=parent["bg"])
     lbl.image = img
     lbl.pack(pady=5)

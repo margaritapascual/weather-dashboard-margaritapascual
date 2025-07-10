@@ -5,8 +5,11 @@ from core.weather_storage import WeatherStorage
 from gui import WeatherGUI
 
 def main():
-    cfg     = Config.from_env()
-    api     = WeatherAPI(cfg.api_key, timeout=cfg.request_timeout)
+    # Load configuration (with dotenv fallback)
+    cfg = Config.from_env()
+    print("▶︎ Loaded API key:", cfg.api_key)  # Debug: show which key is in use
+
+    api = WeatherAPI(cfg.api_key, timeout=cfg.request_timeout)
     storage = WeatherStorage(cfg.db_path)
 
     root = Tk()
