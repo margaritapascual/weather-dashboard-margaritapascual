@@ -17,18 +17,17 @@ ICON_MAP = {
     "50d": "mist.png",      "50n": "mist.png",
 }
 
-# compute your project-root icons folder
+# __file__ is features/current_conditions_icons.py
 _THIS_DIR   = os.path.dirname(__file__)
-PROJECT_ROOT = os.path.abspath(os.path.join(_THIS_DIR, os.pardir))
-ICONS_DIR   = os.path.join(PROJECT_ROOT, "icons")
+ICONS_DIR   = os.path.join(_THIS_DIR, "icons")   # now points at features/icons
 
 def load_icon(icon_code: str, size=(50,50)) -> ImageTk.PhotoImage:
     """
-    1) Load the local icon at <project>/icons/<filename>.
-    2) If missing, immediately raise FileNotFoundError so you spot it.
+    1) Load the local icon at <project>/features/icons/<filename>.
+    2) Fail fast if missing so you’ll spot it immediately.
     Returns a PhotoImage resized to `size`.
     """
-    fn   = ICON_MAP.get(icon_code)
+    fn = ICON_MAP.get(icon_code)
     if not fn:
         raise KeyError(f"No mapping for icon code '{icon_code}' in ICON_MAP")
     path = os.path.join(ICONS_DIR, fn)

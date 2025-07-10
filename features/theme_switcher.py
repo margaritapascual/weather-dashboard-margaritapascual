@@ -1,24 +1,24 @@
+# features/theme_switcher.py
+
 import tkinter as tk
 
+# Define your two teal themes
 THEMES = {
-    "light": {"bg": "#f0f4f7", "fg": "#000000"},
-    "dark":  {"bg": "#2e2e2e", "fg": "#ffffff"}
+    "dark":  {"bg": "#005f5f", "fg": "white"},
+    "light": {"bg": "#a8e6e6", "fg": "black"},
 }
 
-class ThemeSwitcher:
-    def __init__(self, root: tk.Tk):
-        self.root    = root
-        self.current = "light"
-        self.button  = tk.Button(root, text="Toggle Theme", command=self.toggle)
-
-    def apply(self):
-        scheme = THEMES[self.current]
-        for w in self.root.winfo_children():
-            try:
-                w.config(bg=scheme["bg"], fg=scheme["fg"])
-            except tk.TclError:
-                pass
-
-    def toggle(self):
-        self.current = "dark" if self.current=="light" else "light"
-        self.apply()
+def create_theme_menu(root: tk.Tk, apply_theme_callback):
+    """
+    Add a “Theme” menu to the root window that lets you pick a theme.
+    apply_theme_callback(name) will be called with "dark" or "light".
+    """
+    menubar = tk.Menu(root)
+    theme_menu = tk.Menu(menubar, tearoff=0)
+    for name in THEMES:
+        theme_menu.add_command(
+            label=name.title(),
+            command=lambda n=name: apply_theme_callback(n)
+        )
+    menubar.add_cascade(label="Theme", menu=theme_menu)
+    root.config(menu=menubar)
