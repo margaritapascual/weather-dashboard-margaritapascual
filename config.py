@@ -1,22 +1,26 @@
 # config.py
 
-import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
+import os
 
-# Force override existing shell vars with .env values
-load_dotenv(override=True)   # pip install python-dotenv
+# read .env into os.environ
+load_dotenv()
 
 @dataclass
 class Config:
     api_key: str
-    db_path: str
+    database_path: str
+    log_level: str = "INFO"
+    max_retries: int = 3
     request_timeout: int = 10
 
     @classmethod
-    def from_env(cls):
+    def from_environment(cls):
         return cls(
-            api_key=os.getenv("WEATHER_API_KEY", "8ddd1a7540e2a9117566f9c413fc17b8"),
-            db_path=os.getenv("DATABASE_PATH", "./data/weather.db"),
-            request_timeout=int(os.getenv("REQUEST_TIMEOUT", "10")),
+            api_key         = os.getenv("WEATHER_API_KEY", ""),
+            database_path   = os.getenv("DATABASE_PATH", "./data/weather.db"),
+            log_level       = os.getenv("LOG_LEVEL", "INFO"),
+            max_retries     = int(os.getenv("MAX_RETRIES", 3)),
+            request_timeout = int(os.getenv("REQUEST_TIMEOUT", 10)),
         )
