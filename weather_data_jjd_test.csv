@@ -1,0 +1,233 @@
+City,Country,Temperature,Description,Humidity,Pressure,Wind_Speed,Direction,Time,Sunrise,Sunset
+Cleveland,US,84.63,"Clear, clear sky",59,1015,13.8,180,2025-07-06 10:14:10,05:59:33,21:03:14
+Cleveland,US,85.32,"Clear, clear sky",59,1015,13.8,180,2025-07-06 10:29:27,05:59:33,21:03:14
+"San Juan,PR",PR,86.59,"Haze, haze",70,1019,13.8,100,2025-07-06 11:00:07,05:53:07,19:04:49
+"San Juan, PR",PR,87.55,"Haze, haze",70,1019,17.27,70,2025-07-06 11:53:56,05:53:07,19:04:49
+"San Juan,PR",PR,88.5,"Haze, haze",65,1019,14.97,70,2025-07-06 13:25:50,05:53:07,19:04:49
+Oslo,NO,64.56,"Clouds, broken clouds",82,997,6.58,184,2025-07-06 13:29:30,22:06:24,16:36:46
+Oslo,NO,64.56,"Clouds, broken clouds",82,997,6.58,184,2025-07-06 13:29:30,22:06:24,16:36:46
+Nome,US,66.27,"Clear, clear sky",53,1010,3.44,360,2025-07-06 13:35:53,08:44:08,05:28:25
+Fairbanks,US,64.36,"Smoke, smoke",68,1007,0,0,2025-07-06 13:38:16,07:25:16,04:25:44
+Fairbanks,US,64.36,"Smoke, smoke",68,1007,0,0,2025-07-06 13:38:16,07:25:16,04:25:44
+"Ceiba,PR",PR,88.93,"Clouds, overcast clouds",70,1018,4,177,2025-07-06 13:40:56,05:54:10,19:05:51
+"Levittown,PR",PR,88.48,"Haze, haze",67,1018,14.97,70,2025-07-06 13:43:54,05:53:29,19:05:11
+San Juan,AR,59.45,"Clear, clear sky",32,1014,2.55,122,2025-07-06 13:47:18,07:33:45,17:43:45
+San Juan,AR,59.45,"Clear, clear sky",32,1014,2.55,122,2025-07-06 13:49:03,07:33:45,17:43:45
+San Juan,AR,59.45,"Clear, clear sky",32,1014,2.55,122,2025-07-06 13:47:18,07:33:45,17:43:45
+Oslo,NO,64.56,"Clouds, broken clouds",82,997,5.84,174,2025-07-06 13:53:42,22:06:24,16:36:46
+San Juan,AR,59.45,"Clear, clear sky",32,1014,4.23,139,2025-07-06 13:58:06,07:33:45,17:43:45
+Oslo,NO,64.56,"Clouds, broken clouds",82,997,5.84,174,2025-07-06 13:53:42,22:06:24,16:36:46
+Oslo,NO,64.56,"Clouds, broken clouds",82,998,5.84,174,2025-07-06 14:04:46,22:06:24,16:36:46
+oslo,NO,64.56,"Clouds, broken clouds",82,998,5.84,174,2025-07-06 14:04:46,22:06:24,16:36:46
+San Juan,AR,60.91,"Clear, clear sky",31,1014,4.79,147,2025-07-06 14:32:47,07:33:45,17:43:45
+Oslo,NO,63.55,"Clear, clear sky",84,997,7.23,169,2025-07-06 15:07:38,22:06:24,16:36:46
+oslo,NO,63.55,"Clear, clear sky",84,997,7.23,169,2025-07-06 15:10:55,22:06:24,16:36:46
+rome,US,92.23,"Clear, clear sky",44,1016,4.61,320,2025-07-06 15:18:00,06:34:41,20:55:51
+Oslo,NO,63.55,"Clear, clear sky",84,997,7.23,169,2025-07-06 15:22:54,22:06:24,16:36:46
+"San Juan,PR",PR,87.69,"Clouds, few clouds",69,1018,17.27,50,2025-07-06 15:22:22,05:53:07,19:04:49
+London,GB,66.56,"Clouds, few clouds",64,1006,10.36,330,2025-07-06 15:37:55,23:51:28,16:18:41
+Ponce,PR,82.44,"Rain, light rain",81,1017,10.18,146,2025-07-06 15:53:13,05:55:57,19:06:13
+"Levittown,PR",PR,86.88,"Haze, haze",70,1017,17.27,50,2025-07-06 15:57:12,05:53:29,19:05:11
+Osaka,JP,82.63,"Clouds, overcast clouds",65,1005,6.91,60,2025-07-06 16:00:05,15:51:04,06:14:16
+Fukuoka,JP,80.42,"Clouds, overcast clouds",66,1005,6.91,150,2025-07-06 16:05:04,16:14:15,06:31:46
+Perth Amboy,US,90.75,"Clear, clear sky",40,1016,8.01,273,2025-07-06 16:14:18,05:33:03,20:30:17
+Perth Amboy,US,82.15,"Clouds, scattered clouds",80,1015,3,160,2025-07-07 09:54:25,05:33:40,20:29:59
+Perth Amboy,US,82.17,"Clouds, scattered clouds",82,1015,5.01,82,2025-07-07 10:09:31,05:33:40,20:29:59
+"San Juan,PR",PR,86.16,"Clouds, scattered clouds",71,1019,19.57,60,2025-07-07 10:51:13,05:53:27,19:04:48
+"San Juan,PR",PR,86.16,"Clouds, scattered clouds",71,1019,19.57,60,2025-07-07 10:51:13,05:53:27,19:04:48
+San Juan,AR,56.03,"Clear, clear sky",42,1025,4.52,32,2025-07-07 11:04:27,07:33:36,17:44:13
+"Rome,IT",IT,85.5,"Clouds, scattered clouds",48,1008,13.8,240,2025-07-07 11:02:54,23:41:59,14:47:35
+San Juan,AR,56.03,"Clear, clear sky",42,1025,4.52,32,2025-07-07 11:10:12,07:33:36,17:44:13
+Levittown,US,86.14,"Clouds, overcast clouds",71,1015,4.61,0,2025-07-07 11:23:17,05:37:02,20:31:07
+Piscataway,US,85.37,"Clouds, scattered clouds",73,1015,1.01,0,2025-07-07 11:22:49,05:34:13,20:30:29
+San Juan,AR,56.03,"Clear, clear sky",42,1025,4.52,32,2025-07-07 11:29:17,07:33:36,17:44:13
+San Juan,AR,60.67,"Clear, clear sky",36,1023,4.09,42,2025-07-07 12:38:35,07:33:36,17:44:13
+"San juan,PR",PR,86.76,"Rain, shower rain",70,1018,16.11,100,2025-07-07 13:13:59,05:53:27,19:04:48
+"Levittown,PR",PR,87.62,"Rain, shower rain",70,1018,16.11,100,2025-07-07 13:14:14,05:53:48,19:05:10
+oslo,61.59,Overcast clouds,81,1003,6.26,44
+Perth Amboy,85.71,Moderate rain,75,1013,8.05,140
+San Juan,85.44,Broken clouds,71,1016,21.85,60
+Perth Amboy,85.82,Moderate rain,76,1013,8.05,140
+New York,85.28,Few clouds,73,1013,14.97,180
+New York,85.1,Few clouds,73,1013,14.97,180
+Oslo,60.58,Overcast clouds,82,1003,5.73,41
+Barrow,35.62,Overcast clouds,87,1008,9.22,350
+Oslo,60.58,Overcast clouds,81,1003,5.73,41
+Levittown,82.76,Broken clouds,82,1014,16.11,200
+oslo,,,58.59,58.05,Overcast clouds,83,1004,0,4.61,353
+Rome,,,78.96,78.96,Clear sky,59,1008,0,11.5,250
+Oslo,,NO,58.59,58.05,Overcast clouds,83,1004,0,4.61,353
+Perth Amboy,New Jersey,US,81.36,86.63,Clear sky,77,1013,0.28,8.05,170
+San Juan,Puerto Rico,US,82.67,89.04,Shower rain,75,1017,0,12.66,90
+Reykjavik,,IS,51.66,50.61,Overcast clouds,87,1002,0,11.5,80
+Los Angeles,California,US,77.04,77.16,Clear sky,58,1014,3.07,14.97,260
+Oslo,,NO,57.6,57.09,Overcast clouds,86,1004,0,4.59,344
+Oslo,,NO,57.6,57.09,Overcast clouds,86,1004,0,4.59,344
+La Paz,La Paz,BO,52.7,48.61,Clear sky,20,1021,0,5.75,50
+Tupelo,Mississippi,US,89.89,98.31,Clear sky,58,1016,0.23,9.22,40
+Oslo,,NO,56.59,55.94,Scattered clouds,85,1011,0,0.38,59
+Orlando,Florida,US,86.68,99.28,Overcast clouds,78,1019,0,3,216
+Perth Amboy,New Jersey,US,74.01,75.06,Clear sky,84,1016,0,3.44,270
+Ulaanbaatar,,MN,18,64,64,Few clouds,77,1006,3.27,4.47,0
+Moorcroft,Wyoming,US,83,28,82,Broken clouds,38,1005,0.08,1.01,63
+Fajardo,Puerto Rico,US,84,29,95,Haze,81,1018,0,8.05,110
+Old Toronto,Ontario,CA,28,83,86,Overcast clouds,62,1012,0.6,1.01,194
+Malmi,,FI,15,59,59,Clear sky,81,1015,0,11.01,35
+San Sebastián,Autonomous Community of the Basque Country,ES,21,69,69,Clear sky,77,1015,0,4.61,170
+Toledo,Castile-La Mancha,ES,25,77,76,Clear sky,28,1013,0,8.43,251
+Toledo,Castile-La Mancha,ES,25,77,76,Clear sky,28,1013,0,8.43,251
+Fajardo,Puerto Rico,US,83,28,92,Haze,82,1018,0,10,94
+Oslo,,NO,14,57,56,Scattered clouds,80,1019,0,2.04,351
+Oslo,,NO,13,55,54,Overcast clouds,81,1019,0,2.93,2
+Oslo,,NO,13,55,54,Overcast clouds,81,1019,0,2.93,2
+Perth Amboy,New Jersey,US,77,25,78,Clear sky,77,1014,0,4.61,150
+Perth Amboy,New Jersey,US,76,24,77,Overcast clouds,78,1014,0,1.01,107
+Perth Amboy,New Jersey,US,79,26,79,Clear sky,78,1016,0.28,9.22,140
+Oslo,,NO,16,61,60,Clear sky,76,1020,0,4.16,25
+Riyadh,Riyadh Region,SA,31,88,85,Few clouds,11,1003,0,7.45,350
+Tel Aviv-Yafo,Tel Aviv District,IL,25,77,79,Few clouds,85,1008,0,5.75,50
+Phoenix,Arizona,US,109,43,110,Few clouds,20,1006,2.23,11.01,268
+Levittown,New York,US,75,24,76,Overcast clouds,86,1016,0,8.05,150
+Levittown,New York,US,75,24,76,Overcast clouds,86,1016,0,8.05,150
+Levittown,New York,US,75,24,76,Overcast clouds,86,1016,0,8.05,150
+Levittown,New York,US,75,24,76,Overcast clouds,86,1016,0,8.05,150
+Levittown,New York,US,75,24,76,Overcast clouds,86,1016,0,8.05,150
+Toa Baja,Puerto Rico,US,82,28,91,Broken clouds,85,1020,0,5,74
+Oslo,,NO,17,62,61,Clear sky,74,1021,0,5,360
+Cleveland,Ohio,US,81,27,85,Clear sky,67,1014,0,6,190
+Cleveland,Ohio,US,81,27,85,Clear sky,67,1014,0,6,190
+Perth Amboy,New Jersey,US,76,24,77,Clear sky,81,1016,0,7,130
+Oslo,,NO,16,61,60,Clear sky,73,1020,0,5,6
+Los Angeles,California,US,75,24,76,Clear sky,66,1013,1.24,13,200
+Toa Baja,Puerto Rico,US,82,28,91,Broken clouds,86,1020,0,2,202
+Perth Amboy,New Jersey,US,80,27,84,Broken clouds,75,1018,5.3,3,216
+Oslo,,NO,30,86,84,Few clouds,31,1017,4.03,11,52
+Oslo,,NO,30,86,84,Few clouds,31,1017,4.03,11,52
+Oslo,,NO,30,86,84,Few clouds,31,1017,4.03,11,52
+Perth Amboy,New Jersey,US,81,27,85,Broken clouds,73,1018,5.3,7,123
+Perth Amboy,New Jersey,US,84,29,89,Overcast clouds,68,1018,7.66,8,170
+Osaka,Osaka Prefecture,JP,28,82,85,Broken clouds,64,1007,0,3,240
+Osaka,Osaka Prefecture,JP,28,82,85,Broken clouds,64,1007,0,3,240
+Tokyo,,JP,23,74,74,Broken clouds,76,1009,0,7,70
+Nagata,,JP,24,75,76,Overcast clouds,85,1007,0,3,124
+Fajardo,Puerto Rico,US,87,31,100,Broken clouds,75,1020,11.09,6,105
+Ponce,Puerto Rico,US,88,31,100,Broken clouds,71,1019,11.02,14,122
+Fajardo,Puerto Rico,US,87,31,100,Broken clouds,75,1020,11.09,6,98
+Perth Amboy,New Jersey,US,83,28,89,Broken clouds,69,1018,9.34,6,150
+Paris,Ile-de-France,FR,28,83,83,Clear sky,43,1011,2.39,9,40
+London,England,GB,28,83,84,Clear sky,50,1014,2.58,9,124
+Berlin,,DE,17,63,64,Broken clouds,91,1007,0.65,9,264
+Warsaw,Masovian Voivodeship,PL,19,67,67,Few clouds,73,1014,0.3,5,120
+Miami,Florida,US,89,32,102,Broken clouds,73,1020,9.87,6,140
+Miami,Florida,US,89,32,102,Broken clouds,73,1020,9.87,6,140
+San Diego,California,US,65,18,65,Overcast clouds,85,1016,3.63,8,160
+Moorcroft,Wyoming,US,69,21,68,Clear sky,50,1016,5.19,8,233
+Taiwan,,TW,17,63,64,Overcast clouds,89,1013,0,4,144
+Philadelphia,Pennsylvania,US,85,29,91,Broken clouds,68,1018,9.49,7,80
+Knoxville,Tennessee,US,86,30,95,Few clouds,68,1018,9.22,3,0
+Denver,Colorado,US,70,21,69,Scattered clouds,66,1015,5.52,3,86
+Orlando,Florida,US,89,32,101,Broken clouds,70,1020,9.76,5,0
+Havana,Havana,CU,31,88,99,Few clouds,66,1019,10.11,3,0
+Rio de Janeiro,Rio de Janeiro,BR,23,73,74,Broken clouds,69,1025,4.91,8,70
+Rio Hondo,Texas,US,88,31,100,Few clouds,78,1015,7.28,21,158
+Dallas,Texas,US,84,29,92,Scattered clouds,75,1016,7.06,14,179
+Bayamón,Puerto Rico,US,89,32,101,Haze,66,1020,11.03,16,70
+Osaka,Osaka Prefecture,JP,28,82,86,Broken clouds,67,1007,0,3,240
+Osaka,Osaka Prefecture,JP,28,82,86,Broken clouds,67,1007,0,3,240
+Tierra del Fuego,,CL,4,39,29,Scattered clouds,68,988,0.52,19,334
+Oslo,,NO,29,84,82,Broken clouds,32,1017,0.94,8,60
+Ponce,Puerto Rico,US,86,30,97,Broken clouds,77,1018,10.94,13,105
+Levittown,New York,US,80,27,85,Few clouds,77,1018,9.85,9,130
+Fajardo,Puerto Rico,US,88,31,101,Overcast clouds,72,1019,10.28,12,60
+Fajardo,Puerto Rico,US,88,31,101,Overcast clouds,72,1019,10.28,12,60
+Fajardo,Puerto Rico,US,88,31,101,Overcast clouds,72,1019,10.28,12,60
+Fajardo,Puerto Rico,US,88,31,101,Scattered clouds,75,1019,10.28,4,111
+Hong Kong Island,Hong Kong,CN,29,84,94,Overcast clouds,83,1006,0,7,195
+Beijing,Beijing,CN,24,75,76,Few clouds,76,1007,0,4,30
+Fajardo,Puerto Rico,US,88,31,101,Overcast clouds,73,1019,8.44,8,70
+Beijing,Beijing,CN,23,73,74,Few clouds,76,1007,0,4,30
+Beijing,Beijing,CN,23,73,74,Few clouds,76,1007,0,4,30
+Ceiba,Puerto Rico,US,88,31,100,Overcast clouds,73,1019,9.24,3,164
+Oslo,,NO,28,83,82,Broken clouds,39,1018,0.42,8,62
+Orlando,Florida,US,93,34,105,Broken clouds,59,1019,9.84,5,320
+Capetown,California,US,65,18,65,Few clouds,77,1013,8.06,8,326
+Boulder,Colorado,US,74,23,74,Overcast clouds,60,1012,10.84,5,0
+Trenton,New Jersey,US,88,31,97,Scattered clouds,62,1017,7.63,3,142
+Sydney,New South Wales,AU,6,43,38,Clear sky,84,1022,0,8,320
+Sydney,New South Wales,AU,6,43,38,Clear sky,84,1022,0,8,320
+Toa Baja,Puerto Rico,US,89,32,102,Scattered clouds,71,1018,6.39,4,181
+Río Piedras,Puerto Rico,US,89,32,101,Scattered clouds,68,1018,6.39,7,63
+Beijing,Beijing,CN,23,73,74,Clear sky,75,1006,0,4,38
+Böhme,Lower Saxony,DE,17,62,62,Overcast clouds,90,1010,0,5,353
+Fajardo,Puerto Rico,US,87,31,99,Overcast clouds,73,1017,3.56,10,60
+Fajardo,Puerto Rico,US,87,31,99,Overcast clouds,73,1017,3.56,10,60
+Río Piedras,Puerto Rico,US,87,31,99,Haze,70,1017,3.61,17,60
+Ceiba,Puerto Rico,US,88,31,101,Scattered clouds,74,1017,3.61,5,243
+Perth Amboy,New Jersey,US,83,28,88,Scattered clouds,72,1018,7.47,7,130
+Perth Amboy,New Jersey,US,83,28,88,Scattered clouds,72,1018,7.47,7,130
+Perth Amboy,New Jersey,US,83,28,89,Scattered clouds,72,1018,7.47,9,140
+Sydney,New South Wales,AU,12,53,51,Clear sky,58,1009,0,3,20
+Nagano,,JP,23,73,74,Clear sky,83,1004,0,4,193
+Trenton,New Jersey,US,86,30,94,Overcast clouds,66,1017,7.58,6,0
+Beijing,Beijing,CN,24,75,75,Overcast clouds,65,1005,0,4,44
+Hong Kong Island,Hong Kong,CN,29,84,94,Overcast clouds,82,1004,0,8,176
+Skippack,Pennsylvania,US,86,30,94,Broken clouds,68,1017,7.11,6,150
+Piscataway Township,New Jersey,US,83,28,91,Overcast clouds,75,1018,7.47,3,0
+Tokyo,,JP,26,78,80,Broken clouds,89,1003,0,10,40
+Tahiti,French Polynesia,FR,21,69,70,Broken clouds,79,1016,2.87,13,125
+South Amboy,New Jersey,US,83,28,89,Scattered clouds,72,1018,7.5,10,160
+Fajardo,Puerto Rico,US,86,30,98,Overcast clouds,74,1017,5.37,6,115
+Osaka,Osaka Prefecture,JP,26,78,79,Overcast clouds,64,999,0,10,80
+Sydney,New South Wales,AU,11,52,49,Clear sky,63,1010,0,6,80
+Perth Amboy,New Jersey,US,83,28,90,Clear sky,72,1017,4.72,12,170
+Sydney,New South Wales,AU,11,51,48,Clear sky,64,1010,0,8,220
+Perth Amboy,New Jersey,US,78,26,80,Clear sky,79,1017,0,9,150
+Sydney,New South Wales,AU,17,62,59,Clear sky,38,1012,1.99,17,250
+Berlin,,DE,17,63,63,Fog,89,1012,0,1,130
+Berlin,,DE,17,63,63,Fog,89,1012,0,1,130
+Rome,Lazio,IT,20,68,67,Clear sky,61,1017,0,4,37
+Fajardo,Puerto Rico,US,81,27,87,Few clouds,83,1018,0,7,70
+Sydney,New South Wales,AU,17,62,60,Clear sky,37,1013,2.81,17,250
+Sydney,New South Wales,AU,17,62,60,Clear sky,37,1013,2.81,17,250
+Perth Amboy,New Jersey,US,77,25,78,Clear sky,80,1017,0,7,130
+Los Angeles,California,US,74,23,74,Broken clouds,66,1013,1.24,14,270
+Berlin,,DE,17,62,63,Fog,94,1011,0,2,170
+Hong Kong Island,Hong Kong,CN,30,86,99,Light rain,84,1005,4.49,4,200
+Sydney,New South Wales,AU,17,62,60,Clear sky,37,1013,2.81,16,240
+Perth Amboy,New Jersey,US,77,25,78,Scattered clouds,81,1017,0,8,150
+Perth Amboy,New Jersey,US,77,25,78,Scattered clouds,81,1017,0,8,150
+Trenton,New Jersey,US,79,26,79,Overcast clouds,75,1017,0,13,130
+Reading,England,GB,20,68,66,Broken clouds,52,1011,0,6,130
+Macau,Macau,CN,31,87,100,Scattered clouds,79,1005,4.19,5,280
+Sydney,New South Wales,AU,17,63,60,Clear sky,36,1013,2.81,2,227
+Tasmania,,AU,2,36,27,Overcast clouds,90,1007,0.35,13,249
+Perth Amboy,New Jersey,US,77,25,78,Scattered clouds,81,1018,0,6,150
+Houston,Texas,US,83,28,90,Broken clouds,77,1015,0,3,190
+Phoenix,Arizona,US,106,41,103,Few clouds,16,1006,0.63,18,280
+Denver,Colorado,US,88,31,85,Overcast clouds,28,1016,0.45,7,105
+Freehold Borough,New Jersey,US,76,24,77,Broken clouds,82,1018,0,5,120
+Freehold Borough,New Jersey,US,76,24,77,Broken clouds,82,1018,0,5,120
+Ho Chi Minh City,,VN,29,84,94,Broken clouds,80,1008,2.91,5,240
+Sydney,New South Wales,AU,17,63,60,Clear sky,36,1013,2.81,2,227
+Trenton,New Jersey,US,79,26,79,Overcast clouds,76,1017,0,12,130
+Perth Amboy,New Jersey,US,77,25,78,Scattered clouds,81,1018,0,6,150
+Trenton,New Jersey,US,79,26,79,Overcast clouds,76,1017,0,12,130
+Mexico City,,MX,22,71,70,Light rain,46,1014,0,9,100
+Lima,Lima,PE,17,63,63,Broken clouds,82,1015,0,13,160
+Lima,Lima,PE,17,63,63,Broken clouds,82,1015,0,13,160
+Vineland,New Jersey,US,77,25,79,Clear sky,86,1017,0,6,120
+Trondheim,,NO,19,66,66,Scattered clouds,74,1019,0,6,71
+Sydney,New South Wales,AU,10,50,48,Clear sky,62,1017,0.97,12,290
+London,England,GB,17,62,62,Broken clouds,77,1014,0,17,250
+Berlin,,DE,16,60,60,Clear sky,92,1014,0,7,273
+Perth Amboy,New Jersey,US,84,29,93,Clear sky,76,1017,0,6,131
+Sydney,New South Wales,AU,13,56,54,Clear sky,53,1018,2.68,13,300
+Perth Amboy,New Jersey,US,82,28,88,Clear sky,79,1017,0,5,200
+Lisbon,,PT,20,68,68,Clear sky,64,1018,0,12,310
+Perth Amboy,New Jersey,US,81,27,86,Clear sky,79,1017,0,6,190
+Perth Amboy,New Jersey,US,81,27,86,Clear sky,79,1017,0,6,190
+Perth Amboy,New Jersey,US,81,27,85,Clear sky,79,1017,0,3,197
+Perth Amboy,New Jersey,US,81,27,85,Clear sky,79,1017,0,3,197
+Perth Amboy,New Jersey,US,81,27,85,Clear sky,79,1017,0,3,197
+Perth Amboy,New Jersey,US,81,27,86,Scattered clouds,80,1014,0,6,280
+New York,New York,US,83,28,91,Broken clouds,81,1013,0,14,180
