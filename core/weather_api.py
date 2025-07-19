@@ -4,7 +4,7 @@ import requests
 from requests.exceptions import RequestException
 
 class WeatherAPI:
-    """Fetch geolocation, current conditions, and daily forecasts 
+    """Fetch geolocation, current conditions, and daily forecasts
        from OpenWeatherMap’s One Call API."""
     GEOCODE_URL = "http://api.openweathermap.org/geo/1.0/direct"
     ONECALL_URL = "https://api.openweathermap.org/data/3.0/onecall"

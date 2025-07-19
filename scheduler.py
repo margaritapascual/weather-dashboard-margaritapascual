@@ -1,35 +1,43 @@
-# scheduler.py
-
-import time
-import schedule
-from config import Config
+# scheduler.py (data pull and CSV cleaning)
+import pandas as pd
 from core.weather_api import WeatherAPI
-from features.historical_data import save_history
+from datetime import datetime
 
-# --- Configure your job once ---
-def fetch_and_save():
-    city = "New York"   # ← Change this to whatever city you want logged daily
-    cfg = Config.from_environment()
-    api = WeatherAPI(
-        cfg.api_key,
-        timeout=cfg.request_timeout,
-        max_retries=cfg.max_retries
-    )
+API_KEY = 'YOUR_API_KEY'
+CITIES = ['New York', 'London', 'Tokyo']
+API = WeatherAPI(api_key=API_KEY)
 
-    try:
-        lat, lon = api.geocode(city)
-        daily = api.get_daily(lat, lon, days=7)
-        save_history(city, daily)
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Saved history for {city}")
-    except Exception as e:
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Error fetching {city}: {e}")
+# Fetch and append data for each city
+rows = []
+for city in CITIES:
+    # daily forecast data
+    for entry in API.get_forecast(city, freq='daily'):
+        rows.append({
+            'datetime': datetime.utcfromtimestamp(entry['dt']),
+            'city': city,
+            'temp_c': entry['temp']['day'],
+            'humidity_pct': entry['humidity'],
+            'pressure_hpa': entry['pressure'],
+            'wind_speed_m_s': entry.get('wind_speed'),
+            'wind_deg': entry.get('wind_deg'),
+            'uvi': entry.get('uvi'),
+            'weather_main': entry['weather'][0]['main'],
+            'weather_desc': entry['weather'][0]['description'],
+            'sunrise': datetime.utcfromtimestamp(entry['sunrise']),
+            'sunset': datetime.utcfromtimestamp(entry['sunset']),
+            'retrieval_time': datetime.utcnow(),
+        })
+# Load existing data
+try:
+    df = pd.read_csv('data/weather_clean.csv', parse_dates=['datetime', 'sunrise', 'sunset', 'retrieval_time'])
+except FileNotFoundError:
+    df = pd.DataFrame()
 
-# Schedule it for 8:00 AM every day
-schedule.every().day.at("08:00").do(fetch_and_save)
-
-# --- Keep the scheduler running ---
-if __name__ == "__main__":
-    print("Scheduler started, will run daily at 08:00")
-    while True:
-        schedule.run_pending()
-        time.sleep(30)
+new_df = pd.DataFrame(rows)
+# Concatenate and clean
+combined = pd.concat([df, new_df], ignore_index=True)
+# Drop duplicates by datetime+city
+combined.drop_duplicates(subset=['datetime', 'city'], inplace=True)
+# Sort and save
+combined.sort_values(['city', 'datetime'], inplace=True)
+combined.to_csv('data/weather_clean.csv', index=False)
