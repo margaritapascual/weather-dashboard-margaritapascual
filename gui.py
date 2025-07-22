@@ -8,8 +8,7 @@ import io
 import requests
 import threading
 import logging
-import numpy as np
-from typing import Dict
+from typing import Dict, List
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,7 +20,6 @@ class WeatherDashboard(tk.Tk):
         self.weather_api = weather_api
         self.predictor = predictor
 
-        # Theme settings
         self.themes = {
             'light': {
                 'bg': '#d8b4f8',
@@ -43,6 +41,7 @@ class WeatherDashboard(tk.Tk):
             }
         }
         self.current_theme = 'light'
+
         self.title("Weather Dashboard")
         self.geometry("1000x700")
         self._setup_ui()
@@ -63,6 +62,7 @@ class WeatherDashboard(tk.Tk):
 
     def _build_sidebar(self):
         theme = self.themes[self.current_theme]
+
         self.weather_icon = tk.Label(self.sidebar, bg=theme['sidebar_bg'])
         self.weather_icon.pack(pady=20)
 
@@ -121,12 +121,14 @@ class WeatherDashboard(tk.Tk):
         for widget in widgets:
             if widget == self.alert_label:
                 widget.config(bg=theme['alert_bg'], fg=theme['fg'])
-            elif isinstance(widget, (tk.Label, tk.Button)):
-                widget.config(bg=theme['sidebar_bg'] if isinstance(widget, tk.Label) else theme['btn_bg'],
-                              fg=theme['fg'] if isinstance(widget, tk.Label) else theme['btn_fg'])
+            elif isinstance(widget, tk.Label):
+                widget.config(bg=theme['sidebar_bg'], fg=theme['fg'])
+            elif isinstance(widget, tk.Button):
+                widget.config(bg=theme['btn_bg'], fg=theme['btn_fg'])
 
         self.figure.set_facecolor(theme['chart_bg'])
         self.ax.set_facecolor(theme['chart_bg'])
+
         if hasattr(self, 'forecast_data'):
             self._update_chart(self.forecast_data)
         self.chart.draw()
@@ -186,7 +188,6 @@ class WeatherDashboard(tk.Tk):
         for widget in self.forecast_frame.winfo_children():
             widget.destroy()
 
-        # Add title
         title = tk.Label(
             self.forecast_frame,
             text="5-Day Forecast",
@@ -226,11 +227,13 @@ class WeatherDashboard(tk.Tk):
             self.ax.clear()
             dates = [datetime.fromtimestamp(day['dt']) for day in forecast_data['daily']]
             temps = [day['temp']['day'] for day in forecast_data['daily']]
-            day_nums = np.array(range(len(dates))).reshape(-1, 1)
+            day_nums = list(range(len(dates)))
             predictions = self.predictor.predict(day_nums)
 
             self.ax.plot(dates, temps, 'o-', label='Actual Temp')
-            self.ax.plot(dates, predictions, 's--', label='ML Prediction')
+
+            if predictions and len(predictions) == len(dates):
+                self.ax.plot(dates, predictions, 's--', label='ML Prediction')
 
             theme = self.themes[self.current_theme]
             self.ax.set_title("7-Day Temperature Forecast", color=theme['fg'])
@@ -239,6 +242,7 @@ class WeatherDashboard(tk.Tk):
             self.ax.tick_params(colors=theme['fg'])
             for spine in self.ax.spines.values():
                 spine.set_color(theme['fg'])
+
             self.figure.autofmt_xdate()
             self.chart.draw()
         except Exception as e:
