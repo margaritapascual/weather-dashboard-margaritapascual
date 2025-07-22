@@ -34,8 +34,8 @@ class WeatherDashboard(tk.Tk):
                 'bg': '#5a189a',
                 'fg': '#ffffff',
                 'sidebar_bg': '#3c096c',
-                'btn_bg': '#7b2cbf',
-                'btn_fg': '#ffffff',
+                'btn_bg': '#e9d5ff',
+                'btn_fg': '#000000',
                 'chart_bg': '#2d004b',
                 'alert_bg': '#660000'
             }
@@ -79,6 +79,7 @@ class WeatherDashboard(tk.Tk):
         self.uv_label.pack(pady=(0, 20))
 
         self.alert_label = tk.Label(self.sidebar, text="No alerts", wraplength=230, justify=tk.LEFT,
+                                    anchor='nw', height=10, padx=5, pady=5,
                                     bg=theme['alert_bg'], fg=theme['fg'])
         self.alert_label.pack(fill=tk.X, padx=5, pady=5)
 
@@ -152,7 +153,8 @@ class WeatherDashboard(tk.Tk):
             current_data = forecast_data['current']
             self.after(0, lambda: self._update_display(current_data, forecast_data))
         except Exception as e:
-            self.after(0, lambda: messagebox.showerror("Error", str(e)))
+            error_msg = str(e)
+            self.after(0, lambda msg=error_msg: messagebox.showerror("Error", msg))
 
     def _update_display(self, current_data: Dict, forecast_data: Dict):
         self.current_data = current_data
@@ -231,7 +233,6 @@ class WeatherDashboard(tk.Tk):
             predictions = self.predictor.predict(day_nums)
 
             self.ax.plot(dates, temps, 'o-', label='Actual Temp')
-
             if predictions and len(predictions) == len(dates):
                 self.ax.plot(dates, predictions, 's--', label='ML Prediction')
 
