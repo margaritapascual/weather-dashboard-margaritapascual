@@ -3,307 +3,255 @@ from tkinter import messagebox
 from datetime import datetime
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+import io
+import requests
+import threading
+import logging
+import numpy as np
+from typing import Dict
 
-from features.theme_switcher import create_theme_menu
-from core.weather_api import WeatherAPI
-from features.current_conditions_icons import load_icon
-from features.historical_data import save_history
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Color themes (dark-mode buttons are now light gray with black text)
-themes = {
-	'light': dict(
-		bg='#005f6a',
-		sidebar_bg='#044f4f',
-		fg='white',
-		btn_bg='white',
-		btn_fg='black'
-	),
-	'dark': dict(
-		bg='#222222',
-		sidebar_bg='#111111',
-		fg='white',
-		btn_bg='#888888',   # lighter gray so text shows up
-		btn_fg='black'
-	),
-}
 
 class WeatherDashboard(tk.Tk):
-	def __init__(self, weather_api: WeatherAPI):
-		super().__init__()
-		self.weather_api = weather_api
-		self.title("Weather Dashboard")
-		self.geometry("800x600")
+    def __init__(self, weather_api, predictor):
+        super().__init__()
+        self.weather_api = weather_api
+        self.predictor = predictor
 
-		# Initial theme & menu
-		self.current_theme = 'light'
-		self._apply_theme_recursively()
-		create_theme_menu(self, self.select_theme)
+        # Theme settings
+        self.themes = {
+            'light': {
+                'bg': '#d8b4f8',
+                'fg': '#000000',
+                'sidebar_bg': '#c084fc',
+                'btn_bg': '#e9d5ff',
+                'btn_fg': '#000000',
+                'chart_bg': '#f5f0ff',
+                'alert_bg': '#ffcccc'
+            },
+            'dark': {
+                'bg': '#5a189a',
+                'fg': '#ffffff',
+                'sidebar_bg': '#3c096c',
+                'btn_bg': '#7b2cbf',
+                'btn_fg': '#ffffff',
+                'chart_bg': '#2d004b',
+                'alert_bg': '#660000'
+            }
+        }
+        self.current_theme = 'light'
+        self.title("Weather Dashboard")
+        self.geometry("1000x700")
+        self._setup_ui()
+        self._set_initial_state()
 
-		self.sidebar_width = 200
-		self._build_widgets()
+    def _setup_ui(self):
+        self.main_frame = tk.Frame(self, bg=self.themes[self.current_theme]['bg'])
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-	def select_theme(self, name):
-		"""Called by the Theme menu or Toggle button."""
-		self.current_theme = name
-		self._apply_theme_recursively()
-		try:
-			self.chart.draw()
-		except:
-			pass
+        self.sidebar = tk.Frame(self.main_frame, bg=self.themes[self.current_theme]['sidebar_bg'], width=250)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
 
-	def _apply_theme_recursively(self, widget=None):
-		"""Walk the widget tree and apply background/foreground colors."""
-		if widget is None:
-			widget = self
-		t = themes[self.current_theme]
+        self.content = tk.Frame(self.main_frame, bg=self.themes[self.current_theme]['bg'])
+        self.content.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-		# Try setting background everywhere
-		try:
-			widget.configure(background=t['bg'])
-		except tk.TclError:
-			pass
+        self._build_sidebar()
+        self._build_content()
 
-		# Labels & Buttons: also set fg/bg
-		if isinstance(widget, (tk.Label, tk.Button)):
-			widget.configure(
-				background=(t['btn_bg'] if isinstance(widget, tk.Button) else t['bg']),
-				foreground=(t['btn_fg'] if isinstance(widget, tk.Button) else t['fg'])
-			)
+    def _build_sidebar(self):
+        theme = self.themes[self.current_theme]
+        self.weather_icon = tk.Label(self.sidebar, bg=theme['sidebar_bg'])
+        self.weather_icon.pack(pady=20)
 
-		for child in widget.winfo_children():
-			self._apply_theme_recursively(child)
+        self.current_temp = tk.Label(self.sidebar, text="--°F", font=('Helvetica', 24),
+                                     bg=theme['sidebar_bg'], fg=theme['fg'])
+        self.current_temp.pack()
 
-	def _build_widgets(self):
-		# Sidebar
-		self.sidebar = tk.Frame(
-			self,
-			background=themes[self.current_theme]['sidebar_bg'],
-			width=self.sidebar_width
-		)
-		self.sidebar.pack(side='left', fill='y')
-		self.sidebar.pack_propagate(False)
+        self.humidity_label = tk.Label(self.sidebar, text="Humidity: --%",
+                                       bg=theme['sidebar_bg'], fg=theme['fg'])
+        self.humidity_label.pack()
 
-		self.sb_icon = tk.Label(
-			self.sidebar,
-			background=themes[self.current_theme]['sidebar_bg']
-		)
-		self.sb_icon.pack(pady=10)
+        self.uv_label = tk.Label(self.sidebar, text="UV Index: --",
+                                 bg=theme['sidebar_bg'], fg=theme['fg'])
+        self.uv_label.pack(pady=(0, 20))
 
-		self.sb_temp = tk.Label(
-			self.sidebar,
-			text="--°F",
-			font=('Helvetica', 20),
-			background=themes[self.current_theme]['sidebar_bg'],
-			foreground=themes[self.current_theme]['fg']
-		)
-		self.sb_temp.pack()
+        self.alert_label = tk.Label(self.sidebar, text="No alerts", wraplength=230, justify=tk.LEFT,
+                                    bg=theme['alert_bg'], fg=theme['fg'])
+        self.alert_label.pack(fill=tk.X, padx=5, pady=5)
 
-		self.sb_humidity = tk.Label(
-			self.sidebar,
-			text="Humidity: --%",
-			background=themes[self.current_theme]['sidebar_bg'],
-			foreground=themes[self.current_theme]['fg']
-		)
-		self.sb_humidity.pack()
+        self.city_entry = tk.Entry(self.sidebar)
+        self.city_entry.pack(pady=10, padx=10, fill=tk.X)
 
-		self.sb_uv = tk.Label(
-			self.sidebar,
-			text="UV Index: --",
-			background=themes[self.current_theme]['sidebar_bg'],
-			foreground=themes[self.current_theme]['fg']
-		)
-		self.sb_uv.pack(pady=(0,10))
+        self.update_btn = tk.Button(self.sidebar, text="Update Weather",
+                                    command=self._update_weather,
+                                    bg=theme['btn_bg'], fg=theme['btn_fg'])
+        self.update_btn.pack(pady=5, fill=tk.X)
 
-		self.sb_alert = tk.Label(
-			self.sidebar,
-			text="",
-			wraplength=self.sidebar_width-10,
-			background=themes[self.current_theme]['sidebar_bg'],
-			foreground=themes[self.current_theme]['fg'],
-			justify='left'
-		)
-		self.sb_alert.pack(pady=(0,20))
+        self.theme_btn = tk.Button(self.sidebar, text="Toggle Theme",
+                                   command=self._toggle_theme,
+                                   bg=theme['btn_bg'], fg=theme['btn_fg'])
+        self.theme_btn.pack(pady=5, fill=tk.X)
 
-		# Controls
-		self.ctrl_frame = tk.Frame(
-			self,
-			background=themes[self.current_theme]['bg']
-		)
-		self.ctrl_frame.pack(fill='x', padx=10, pady=5)
+    def _build_content(self):
+        theme = self.themes[self.current_theme]
+        self.forecast_frame = tk.Frame(self.content, bg=theme['bg'])
+        self.forecast_frame.pack(fill=tk.X, padx=10, pady=10)
 
-		tk.Label(
-			self.ctrl_frame,
-			text="City:",
-			background=themes[self.current_theme]['bg'],
-			foreground=themes[self.current_theme]['fg']
-		).pack(side='left')
+        self.figure = Figure(figsize=(8, 4), dpi=100, facecolor=theme['chart_bg'])
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_facecolor(theme['chart_bg'])
 
-		self.city_entry = tk.Entry(self.ctrl_frame)
-		self.city_entry.pack(side='left', padx=5)
+        self.chart = FigureCanvasTkAgg(self.figure, master=self.content)
+        self.chart.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-		for label, cmd in [("Update", self.on_update),
-						   ("Toggle Theme", self.toggle_theme)]:
-			btn = tk.Button(
-				self.ctrl_frame,
-				text=label,
-				background=themes[self.current_theme]['btn_bg'],
-				foreground=themes[self.current_theme]['btn_fg'],
-				activebackground=themes[self.current_theme]['bg'],
-				activeforeground=themes[self.current_theme]['btn_fg'],
-				highlightbackground=themes[self.current_theme]['btn_bg'],  # macOS hack
-				command=cmd
-			)
-			btn.pack(side='left', padx=5)
+    def _update_theme_colors(self):
+        theme = self.themes[self.current_theme]
+        self.main_frame.config(bg=theme['bg'])
+        self.sidebar.config(bg=theme['sidebar_bg'])
+        self.content.config(bg=theme['bg'])
 
-		# Forecast icons
-		self.forecast_frame = tk.Frame(
-			self,
-			background=themes[self.current_theme]['bg']
-		)
-		self.forecast_frame.pack(fill='x', padx=10, pady=5)
+        widgets = [
+            self.current_temp, self.humidity_label, self.uv_label,
+            self.alert_label, self.update_btn, self.theme_btn
+        ]
 
-		# Mode buttons
-		self.mode_frame = tk.Frame(
-			self,
-			background=themes[self.current_theme]['bg']
-		)
-		self.mode_frame.pack(fill='x', padx=10)
-		modes = ['Daily', 'Weekly', 'Monthly', '7-Day Temp', '30-Day Temp']
-		for m in modes:
-			btn = tk.Button(
-				self.mode_frame,
-				text=m,
-				background=themes[self.current_theme]['btn_bg'],
-				foreground=themes[self.current_theme]['btn_fg'],
-				activebackground=themes[self.current_theme]['bg'],
-				activeforeground=themes[self.current_theme]['btn_fg'],
-				highlightbackground=themes[self.current_theme]['btn_bg'],
-				command=lambda t=m: self.on_mode(t)
-			)
-			btn.pack(side='left', padx=4)
+        for widget in widgets:
+            if widget == self.alert_label:
+                widget.config(bg=theme['alert_bg'], fg=theme['fg'])
+            elif isinstance(widget, (tk.Label, tk.Button)):
+                widget.config(bg=theme['sidebar_bg'] if isinstance(widget, tk.Label) else theme['btn_bg'],
+                              fg=theme['fg'] if isinstance(widget, tk.Label) else theme['btn_fg'])
 
-		# Main plotting area
-		self.main_frame = tk.Frame(self, background='white')
-		self.main_frame.pack(fill='both', expand=True, padx=10, pady=10)
-		self.fig = Figure(figsize=(5,3), dpi=100)
-		self.ax = self.fig.add_subplot(111)
-		self.chart = FigureCanvasTkAgg(self.fig, master=self.main_frame)
-		self.chart.get_tk_widget().pack(fill='both', expand=True)
+        self.figure.set_facecolor(theme['chart_bg'])
+        self.ax.set_facecolor(theme['chart_bg'])
+        if hasattr(self, 'forecast_data'):
+            self._update_chart(self.forecast_data)
+        self.chart.draw()
 
-	def toggle_theme(self):
-		new = 'dark' if self.current_theme=='light' else 'light'
-		self.select_theme(new)
+    def _toggle_theme(self):
+        self.current_theme = 'dark' if self.current_theme == 'light' else 'light'
+        self._update_theme_colors()
 
-	def on_update(self):
-		city = self.city_entry.get().strip()
-		if not city:
-			messagebox.showwarning("Input needed", "Enter a city.")
-			return
+    def _update_weather(self):
+        city = self.city_entry.get()
+        if not city:
+            messagebox.showwarning("Input Error", "Please enter a city name")
+            return
+        self.alert_label.config(text="Loading...", fg='blue')
+        threading.Thread(target=self._fetch_weather_data, args=(city,), daemon=True).start()
 
-		try:
-			lat, lon = self.weather_api.geocode(city)
-			self.last_lat, self.last_lon = lat, lon
+    def _fetch_weather_data(self, city: str):
+        try:
+            lat, lon = self.weather_api.geocode(city)
+            forecast_data = self.weather_api.get_forecast_bundle(lat, lon)
+            current_data = forecast_data['current']
+            self.after(0, lambda: self._update_display(current_data, forecast_data))
+        except Exception as e:
+            self.after(0, lambda: messagebox.showerror("Error", str(e)))
 
-			current = self.weather_api.get_current(lat, lon)
+    def _update_display(self, current_data: Dict, forecast_data: Dict):
+        self.current_data = current_data
+        self.forecast_data = forecast_data
 
-			# Alerts pop-up
-			alerts = current.get('alerts', [])
-			if alerts:
-				for alert in alerts:
-					title = alert.get('event', "Weather Alert")
-					desc  = alert.get('description', "")
-					messagebox.showwarning(title, desc)
-			else:
-				messagebox.showinfo("No Alerts", "There are no active weather alerts.")
+        self.current_temp.config(text=f"{current_data['temp']}°F")
+        self.humidity_label.config(text=f"Humidity: {current_data['humidity']}%")
+        self.uv_label.config(text=f"UV Index: {current_data.get('uvi', 'N/A')}")
+        self._update_weather_icon(current_data['weather'][0]['icon'])
 
-			self._update_sidebar(current)
-			daily = self.weather_api.get_daily(lat, lon, days=7)
-			self._update_forecast(daily)
-			save_history(city, daily)
+        alerts = forecast_data.get('alerts', [])
+        if alerts:
+            alert_text = "\n".join(f"{a['event']}: {a['description'][:100]}..." for a in alerts)
+            self.alert_label.config(text=alert_text, fg='red')
+        else:
+            self.alert_label.config(text="No weather alerts", fg=self.themes[self.current_theme]['fg'])
 
-		except Exception as e:
-			messagebox.showerror("Error", str(e))
+        self._update_forecast(forecast_data)
+        self._update_chart(forecast_data)
 
-	def _update_sidebar(self, current):
-		icon = load_icon(current['weather'][0]['icon'], size=(50,50))
-		if icon:
-			self.sb_icon.config(image=icon)
-			self.sb_icon.image = icon
-		self.sb_temp.config(text=f"{current['temp']}°F")
-		self.sb_humidity.config(text=f"Humidity: {current['humidity']}%")
-		self.sb_uv.config(text=f"UV Index: {current['uvi']}")
-		alerts = current.get('alerts', [])
-		self.sb_alert.config(
-			text="\n".join(a['description'] for a in alerts) if alerts else ""
-		)
+    def _update_weather_icon(self, icon_code: str):
+        try:
+            url = f"http://openweathermap.org/img/wn/{icon_code}@4x.png"
+            response = requests.get(url, stream=True)
+            image_data = Image.open(io.BytesIO(response.content))
+            image = ImageTk.PhotoImage(image_data)
+            self.weather_icon.config(image=image)
+            self.weather_icon.image = image
+        except Exception as e:
+            logger.error(f"Failed to load weather icon: {str(e)}")
 
-	def _update_forecast(self, daily):
-		for w in self.forecast_frame.winfo_children():
-			w.destroy()
+    def _update_forecast(self, forecast_data: Dict):
+        for widget in self.forecast_frame.winfo_children():
+            widget.destroy()
 
-		for day in daily:
-			f = tk.Frame(self.forecast_frame, background=themes[self.current_theme]['bg'])
-			f.pack(side='left', padx=4)
+        # Add title
+        title = tk.Label(
+            self.forecast_frame,
+            text="5-Day Forecast",
+            font=('Helvetica', 14, 'bold'),
+            bg=self.themes[self.current_theme]['bg'],
+            fg=self.themes[self.current_theme]['fg']
+        )
+        title.pack(pady=(0, 10))
 
-			dn = datetime.fromtimestamp(day['dt']).strftime('%a')
-			tk.Label(f, text=dn,
-					 background=themes[self.current_theme]['bg'],
-					 foreground=themes[self.current_theme]['fg']).pack()
+        for day in forecast_data['daily'][:5]:
+            day_frame = tk.Frame(self.forecast_frame, bg=self.themes[self.current_theme]['bg'])
+            day_frame.pack(side=tk.LEFT, padx=5, pady=5)
 
-			try:
-				icon = load_icon(day['weather'][0]['icon'], size=(40,40))
-				if icon:
-					lbl = tk.Label(f, image=icon,
-								   background=themes[self.current_theme]['bg'])
-					lbl.image = icon
-					lbl.pack()
-			except:
-				pass
+            date = datetime.fromtimestamp(day['dt']).strftime('%a %m/%d')
+            tk.Label(day_frame, text=date, bg=self.themes[self.current_theme]['bg'],
+                     fg=self.themes[self.current_theme]['fg']).pack()
 
-			tmax = day['temp'].get('max')
-			tmin = day['temp'].get('min')
-			if tmax is not None and tmin is not None:
-				tk.Label(f, text=f"{tmax:.0f}° | {tmin:.0f}°",
-						 background=themes[self.current_theme]['bg'],
-						 foreground=themes[self.current_theme]['fg'],
-						 font=('Helvetica',10)).pack(pady=(2,0))
+            icon_code = day['weather'][0]['icon']
+            try:
+                url = f"http://openweathermap.org/img/wn/{icon_code}.png"
+                response = requests.get(url, stream=True)
+                image_data = Image.open(io.BytesIO(response.content)).resize((50, 50))
+                image = ImageTk.PhotoImage(image_data)
+                icon_label = tk.Label(day_frame, image=image, bg=self.themes[self.current_theme]['bg'])
+                icon_label.image = image
+                icon_label.pack()
+            except:
+                pass
 
-	def on_mode(self, mode):
-		if not hasattr(self, 'last_lat'):
-			messagebox.showwarning("No data", "Please update a city first.")
-			return
+            temp = day['temp']
+            tk.Label(day_frame, text=f"{temp['day']:.0f}° / {temp['night']:.0f}°",
+                     bg=self.themes[self.current_theme]['bg'],
+                     fg=self.themes[self.current_theme]['fg']).pack()
 
-		days_map = {
-			'Daily':    1,
-			'Weekly':   7,
-			'7-Day Temp':7,
-			'Monthly':  30,
-			'30-Day Temp':30
-		}
-		days = days_map.get(mode, 7)
+    def _update_chart(self, forecast_data: Dict):
+        try:
+            self.ax.clear()
+            dates = [datetime.fromtimestamp(day['dt']) for day in forecast_data['daily']]
+            temps = [day['temp']['day'] for day in forecast_data['daily']]
+            day_nums = np.array(range(len(dates))).reshape(-1, 1)
+            predictions = self.predictor.predict(day_nums)
 
-		series   = self.weather_api.get_daily(self.last_lat, self.last_lon, days=days)
-		dates    = [datetime.fromtimestamp(d['dt']) for d in series]
-		temps    = [(d['temp']['day'] if isinstance(d['temp'], dict) else d['temp'])
-					for d in series]
-		humidity = [d.get('humidity', 0) for d in series]
-		precip   = [d.get('rain', d.get('pop', 0)) for d in series]
+            self.ax.plot(dates, temps, 'o-', label='Actual Temp')
+            self.ax.plot(dates, predictions, 's--', label='ML Prediction')
 
-		self.ax.clear()
-		self.ax.plot(dates, temps, marker='o', label='Temp (°F)')
-		self.ax.set_ylabel("Temp (°F)")
+            theme = self.themes[self.current_theme]
+            self.ax.set_title("7-Day Temperature Forecast", color=theme['fg'])
+            self.ax.set_ylabel("Temperature (°F)", color=theme['fg'])
+            self.ax.legend()
+            self.ax.tick_params(colors=theme['fg'])
+            for spine in self.ax.spines.values():
+                spine.set_color(theme['fg'])
+            self.figure.autofmt_xdate()
+            self.chart.draw()
+        except Exception as e:
+            logger.error(f"Failed to update chart: {str(e)}")
 
-		ax2 = self.ax.twinx()
-		ax2.plot(dates, humidity, marker='s', linestyle='--', label='Humidity (%)')
-		ax2.bar(dates, precip, alpha=0.3, width=0.2, label='Precip (mm)')
+    def _set_initial_state(self):
+        self._update_theme_colors()
 
-		self.ax.legend(loc='upper left')
-		ax2.legend(loc='upper right')
-		self.ax.set_title(f"{mode} Forecast")
 
-		self.fig.autofmt_xdate()
-		self.chart.draw()
-
-def launch_gui(weather_api: WeatherAPI):
-	app = WeatherDashboard(weather_api)
-	app.mainloop()
+def launch_gui(weather_api, predictor):
+    try:
+        app = WeatherDashboard(weather_api, predictor)
+        app.mainloop()
+    except Exception as e:
+        logger.error(f"Failed to launch GUI: {str(e)}")
+        raise

@@ -1,16 +1,24 @@
 import tkinter as tk
 
-# Define your two teal themes
 THEMES = {
-    "dark":  {"bg": "#005f5f", "fg": "white"},
-    "light": {"bg": "#a8e6e6", "fg": "black"},
+    "light": {
+        "bg": "#d8b4f8",          # light purple background
+        "sidebar_bg": "#c084fc",  # medium purple for sidebar
+        "fg": "black",            # text color
+        "btn_bg": "#e9d5ff",      # lightest purple for buttons
+        "btn_fg": "black"         # button text color
+    },
+    "dark": {
+        "bg": "#5a189a",          # dark purple background
+        "sidebar_bg": "#3c096c",  # darker purple for sidebar
+        "fg": "white",            # text color
+        "btn_bg": "#7b2cbf",      # medium purple for buttons
+        "btn_fg": "white"         # button text color
+    }
 }
 
 def create_theme_menu(root: tk.Tk, apply_theme_callback):
-    """
-    Add a “Theme” menu to the root window that lets you pick a theme.
-    apply_theme_callback(name) will be called with "dark" or "light".
-    """
+    """Add theme selection menu to the root window"""
     menubar = tk.Menu(root)
     theme_menu = tk.Menu(menubar, tearoff=0)
     for name in THEMES:
