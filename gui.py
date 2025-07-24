@@ -27,16 +27,16 @@ class WeatherDashboard(tk.Tk):
                 'sidebar_bg': '#c084fc',
                 'btn_bg': '#e9d5ff',
                 'btn_fg': '#000000',
-                'chart_bg': '#f5f0ff',
+                'chart_bg': '#ffffff',
                 'alert_bg': '#ffcccc'
             },
             'dark': {
-                'bg': '#5a189a',
+                'bg': '#3b0a4e',
                 'fg': '#ffffff',
-                'sidebar_bg': '#3c096c',
-                'btn_bg': '#e9d5ff',
+                'sidebar_bg': '#4b0d5f',
+                'btn_bg': '#c084fc',
                 'btn_fg': '#000000',
-                'chart_bg': '#2d004b',
+                'chart_bg': '#ffffff',
                 'alert_bg': '#660000'
             }
         }
@@ -119,9 +119,15 @@ class WeatherDashboard(tk.Tk):
     def _build_content(self):
         theme = self.themes[self.current_theme]
 
-        # Forecast icons
+        # Forecast icons with title
         self.forecast_frame = tk.Frame(self.content, bg=theme['bg'])
         self.forecast_frame.pack(fill=tk.X, padx=10, pady=10)
+        tk.Label(
+            self.forecast_frame,
+            text="5-Day Forecast",
+            font=('Helvetica', 14, 'bold'),
+            bg=theme['bg'], fg=theme['fg']
+        ).pack(pady=(0,5))
 
         # Mode buttons for chart view
         self.mode_frame = tk.Frame(self.content, bg=theme['bg'])
@@ -146,7 +152,6 @@ class WeatherDashboard(tk.Tk):
         self.chart.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     def _update_theme_colors(self):
-        # ... existing theme update code unchanged ...
         theme = self.themes[self.current_theme]
         self.main_frame.config(bg=theme['bg'])
         self.sidebar.config(bg=theme['sidebar_bg'])
@@ -155,8 +160,13 @@ class WeatherDashboard(tk.Tk):
             self.current_temp, self.humidity_label, self.uv_label,
             self.alert_label, self.update_btn, self.theme_btn
         ]:
-            # apply styles...
-            pass
+            # apply styles based on widget type
+            if widget == self.alert_label:
+                widget.config(bg=theme['alert_bg'], fg=theme['fg'])
+            elif isinstance(widget, tk.Label):
+                widget.config(bg=theme['sidebar_bg'], fg=theme['fg'])
+            elif isinstance(widget, tk.Button):
+                widget.config(bg=theme['btn_bg'], fg=theme['btn_fg'])
         self.figure.set_facecolor(theme['chart_bg'])
         self.ax.set_facecolor(theme['chart_bg'])
         self.chart.draw()
@@ -208,52 +218,50 @@ class WeatherDashboard(tk.Tk):
         self._update_chart(forecast_data)
 
     def _update_weather_icon(self, icon_code: str):
-        # existing icon load logic unchanged...
-        pass
+        try:
+            url = f"http://openweathermap.org/img/wn/{icon_code}@4x.png"
+            response = requests.get(url, stream=True)
+            image_data = Image.open(io.BytesIO(response.content))
+            image = ImageTk.PhotoImage(image_data)
+            self.weather_icon.config(image=image)
+            self.weather_icon.image = image
+        except Exception as e:
+            logger.error(f"Failed to load weather icon: {str(e)}")
 
     def _update_forecast(self, forecast_data: Dict):
-        """Render 5-day forecast icons and temperatures."""
         # Clear existing forecast widgets
         for widget in self.forecast_frame.winfo_children():
-            widget.destroy()
-        # Display up to 5 days of forecast
+            if isinstance(widget, tk.Frame):
+                widget.destroy()
+        # Render up to 5 days
         for day in forecast_data.get('daily', [])[:5]:
             day_frame = tk.Frame(self.forecast_frame, bg=self.themes[self.current_theme]['bg'])
             day_frame.pack(side=tk.LEFT, padx=5, pady=5)
 
-            # Date label
             date_str = datetime.fromtimestamp(day['dt']).strftime('%a %m/%d')
             tk.Label(
-                day_frame,
-                text=date_str,
+                day_frame, text=date_str,
                 bg=self.themes[self.current_theme]['bg'],
                 fg=self.themes[self.current_theme]['fg']
             ).pack()
 
-            # Weather icon
             try:
                 icon_code = day['weather'][0]['icon']
                 url = f"http://openweathermap.org/img/wn/{icon_code}.png"
                 resp = requests.get(url, stream=True)
                 img_data = Image.open(io.BytesIO(resp.content)).resize((50, 50))
                 photo = ImageTk.PhotoImage(img_data)
-                icon_label = tk.Label(
-                    day_frame,
-                    image=photo,
-                    bg=self.themes[self.current_theme]['bg']
-                )
+                icon_label = tk.Label(day_frame, image=photo, bg=self.themes[self.current_theme]['bg'])
                 icon_label.image = photo
                 icon_label.pack()
             except Exception as e:
-                logger.error(f"Failed to load forecast icon: {e}")
+                logger.error(f"Failed to load forecast icon: {str(e)}")
 
-            # Temperatures
             temp = day.get('temp', {})
             day_temp = temp.get('day', 0) if isinstance(temp, dict) else temp
             night_temp = temp.get('night', day_temp) if isinstance(temp, dict) else day_temp
             tk.Label(
-                day_frame,
-                text=f"{day_temp:.0f}° / {night_temp:.0f}°",
+                day_frame, text=f"{day_temp:.0f}° / {night_temp:.0f}°",
                 bg=self.themes[self.current_theme]['bg'],
                 fg=self.themes[self.current_theme]['fg']
             ).pack(pady=(2,0))
@@ -280,16 +288,14 @@ class WeatherDashboard(tk.Tk):
             self.figure.autofmt_xdate()
             self.chart.draw()
         except Exception as e:
-            logger.error(f"Failed to update chart: {e}")
+            logger.error(f"Failed to update chart: {str(e)}")
 
     def on_mode(self, mode: str):
-        """Redraw chart based on selected mode (days)."""
         if not hasattr(self, 'forecast_data'):
             messagebox.showwarning("No data", "Please update a city first.")
             return
         days_map = {'Daily': 1, 'Weekly': 7, '7-Day Temp': 7, 'Monthly': 30, '30-Day Temp': 30}
         days = days_map.get(mode, 7)
-        # Filter forecast_data for chart
         series = self.forecast_data.get('daily', [])[:days]
         self._update_chart({'daily': series})
 
@@ -302,5 +308,5 @@ def launch_gui(weather_api, predictor):
         app = WeatherDashboard(weather_api, predictor)
         app.mainloop()
     except Exception as e:
-        logger.error(f"Failed to launch GUI: {e}")
+        logger.error(f"Failed to launch GUI: {str(e)}")
         raise
