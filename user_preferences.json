@@ -1,0 +1,31 @@
+{
+    "version": 1,
+    "language": "en",
+    "theme": {
+        "mode": "light",
+        "font_scale": 1.0
+    },
+    "units": {
+        "temperature": "imperial",
+        "wind_speed": "mph"
+    },
+    "location": {
+        "default_city": "New York, US",
+        "favorites": []
+    },
+    "chart": {
+        "default_type": "scatter"
+    },
+    "time": {
+        "format_24h": false
+    },
+    "forecast": {
+        "default_tab": "5_day"
+    },
+    "refresh": {
+        "interval_seconds": 900
+    },
+    "alerts": {
+        "enabled": true
+    }
+}
