@@ -14,7 +14,7 @@
         "favorites": []
     },
     "chart": {
-        "default_type": "scatter"
+        "default_type": "line"
     },
     "time": {
         "format_24h": false
