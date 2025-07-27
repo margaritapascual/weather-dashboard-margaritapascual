@@ -1,0 +1,23 @@
+timestamp,city,country,temperature,description
+2025-07-17 13:38:58,New York,US,89.37,broken clouds
+2025-07-17 13:40:41,Miami,US,89.19,broken clouds
+2025-07-17 18:45:15,New York,US,91.38,broken clouds
+2025-07-17 19:53:20,Miami,US,86.2,broken clouds
+2025-07-17 19:54:07,New York,US,90.07,few clouds
+2025-07-17 19:55:40,Miami,US,86.2,broken clouds
+2025-07-17 20:26:31,New York,US,89.29,few clouds
+2025-07-17 20:28:54,Miami,US,85.35,broken clouds
+2025-07-17 20:37:22,Boston,US,84.87,scattered clouds
+2025-07-17 20:42:24,Miami,US,85.14,broken clouds
+2025-07-18 09:35:25,New York,US,75.06,clear sky
+2025-07-18 09:39:33,Miami,US,86.68,broken clouds
+2025-07-18 09:42:30,New York,US,75.36,clear sky
+2025-07-18 09:48:10,Miami,US,86.47,broken clouds
+2025-07-18 09:52:15,Santo Domingo,DO,85.87,light rain
+2025-07-18 09:57:19,New York,US,75.85,clear sky
+2025-07-18 10:14:38,Orlando,US,86,scattered clouds
+2025-07-18 10:15:38,Miami,US,87,broken clouds
+2025-07-18 10:17:54,Orlando,US,86,scattered clouds
+2025-07-18 10:22:37,Austin,US,81,clear sky
+2025-07-18 10:34:05,Maliubu,TL,63,overcast clouds
+2025-07-18 10:35:05,Malibu,US,64,scattered clouds
