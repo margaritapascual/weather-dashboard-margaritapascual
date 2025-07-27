@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "language": "en",
+    "language": "es",
     "theme": {
         "mode": "light",
         "font_scale": 1.0
@@ -10,17 +10,17 @@
         "wind_speed": "mph"
     },
     "location": {
-        "default_city": "New York, US",
+        "default_city": "New York",
         "favorites": []
     },
     "chart": {
-        "default_type": "line"
+        "default_type": "bar"
     },
     "time": {
         "format_24h": false
     },
     "forecast": {
-        "default_tab": "5_day"
+        "default_tab": "weekly"
     },
     "refresh": {
         "interval_seconds": 900

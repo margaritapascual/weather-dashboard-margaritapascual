@@ -18,7 +18,6 @@ class WeatherAPI:
         self.timeout = timeout
         self.max_retries = max_retries
 
-        # Retry setup
         retry = Retry(
             total=max_retries,
             backoff_factor=1,
@@ -30,10 +29,8 @@ class WeatherAPI:
         self.session.mount("http://", adapter)
 
     def _request(self, endpoint: str, params: dict) -> Dict:
-        """Generic request handler"""
         params['appid'] = self.api_key
         params['units'] = 'imperial'
-
         try:
             response = self.session.get(
                 f"{self.BASE_URL}/{endpoint}",
@@ -47,13 +44,8 @@ class WeatherAPI:
             raise ValueError(f"API error: {str(e)}")
 
     def geocode(self, city: str) -> Tuple[float, float]:
-        """Get lat/lon for a city using current weather endpoint"""
-        # This endpoint is still v2.5
         url = "https://api.openweathermap.org/data/2.5/weather"
-        params = {
-            'q': city,
-            'appid': self.api_key
-        }
+        params = {'q': city, 'appid': self.api_key}
         try:
             response = self.session.get(url, params=params, timeout=self.timeout)
             response.raise_for_status()
@@ -64,12 +56,31 @@ class WeatherAPI:
             raise ValueError(f"Geocoding error: {str(e)}")
 
     def get_forecast_bundle(self, lat: float, lon: float) -> Dict:
-        """
-        Fetch current, daily forecast, and alerts from One Call API 3.0.
-        This returns: current, minutely, hourly, daily, alerts
-        """
         return self._request("onecall", {
             'lat': lat,
             'lon': lon,
             'exclude': 'minutely,hourly',
         })
+
+    # ─── Adapter methods for gui.py ──────────────────────────────────────────
+
+    def get_current(self, city: str) -> Dict:
+        """Return the `current` dict for a given city name."""
+        lat, lon = self.geocode(city)
+        return self.get_forecast_bundle(lat, lon)["current"]
+
+    def get_daily(self, city: str) -> list:
+        """Return the `daily` list for a given city name."""
+        lat, lon = self.geocode(city)
+        return self.get_forecast_bundle(lat, lon)["daily"]
+
+    def get_alerts(self, city: str) -> list:
+        """Return the `alerts` list (possibly empty) for a given city name."""
+        lat, lon = self.geocode(city)
+        bundle = self.get_forecast_bundle(lat, lon)
+        return bundle.get("alerts", [])
+
+    def get_uv_index(self, coord: Dict) -> float:
+        """Return the UV index from a coord dict (lat/lon)."""
+        # The One Call "current" payload already includes "uvi"
+        return coord.get("uvi", 0.0)
