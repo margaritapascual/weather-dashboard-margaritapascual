@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "language": "es",
+    "language": "en",
     "theme": {
         "mode": "light",
         "font_scale": 1.0
@@ -10,17 +10,17 @@
         "wind_speed": "mph"
     },
     "location": {
-        "default_city": "London",
+        "default_city": "Miami",
         "favorites": []
     },
     "chart": {
-        "default_type": "bar"
+        "default_type": "line"
     },
     "time": {
         "format_24h": false
     },
     "forecast": {
-        "default_tab": "weekly"
+        "default_tab": "monthly"
     },
     "refresh": {
         "interval_seconds": 900
