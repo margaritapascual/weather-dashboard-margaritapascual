@@ -1,43 +1,57 @@
-# scheduler.py (data pull and CSV cleaning)
+# scheduler.py
+import os
 import pandas as pd
-from core.weather_api import WeatherAPI
 from datetime import datetime
+from core.weather_api import WeatherAPI
 
-API_KEY = 'YOUR_API_KEY'
-CITIES = ['New York', 'London', 'Tokyo']
+# ——— CONFIG ———
+# Require your real API key from the env
+API_KEY = os.environ["OPENWEATHER_API_KEY"]
+# print(f"Loaded API key: {API_KEY[:4]}…")  # verify env var is working
+
+OUT_CSV = "data/weather.csv"
+CITIES = [
+    {"city": "New York", "state": "NY",   "country": "USA"},
+    {"city": "London",   "state": "",     "country": "UK"},
+    {"city": "Tokyo",    "state": "",     "country": "Japan"},
+]
+# ——————————
+
 API = WeatherAPI(api_key=API_KEY)
 
-# Fetch and append data for each city
-rows = []
-for city in CITIES:
-    # daily forecast data
-    for entry in API.get_forecast(city, freq='daily'):
-        rows.append({
-            'datetime': datetime.utcfromtimestamp(entry['dt']),
-            'city': city,
-            'temp_c': entry['temp']['day'],
-            'humidity_pct': entry['humidity'],
-            'pressure_hpa': entry['pressure'],
-            'wind_speed_m_s': entry.get('wind_speed'),
-            'wind_deg': entry.get('wind_deg'),
-            'uvi': entry.get('uvi'),
-            'weather_main': entry['weather'][0]['main'],
-            'weather_desc': entry['weather'][0]['description'],
-            'sunrise': datetime.utcfromtimestamp(entry['sunrise']),
-            'sunset': datetime.utcfromtimestamp(entry['sunset']),
-            'retrieval_time': datetime.utcnow(),
-        })
-# Load existing data
-try:
-    df = pd.read_csv('data/weather_clean.csv', parse_dates=['datetime', 'sunrise', 'sunset', 'retrieval_time'])
-except FileNotFoundError:
-    df = pd.DataFrame()
+def fetch_and_build_rows():
+    rows = []
+    now_str = datetime.utcnow().strftime("%m-%d-%y %H:%M:%S")
+    # We know get_daily exists
+    fetch = lambda city: API.get_daily(city)
 
-new_df = pd.DataFrame(rows)
-# Concatenate and clean
-combined = pd.concat([df, new_df], ignore_index=True)
-# Drop duplicates by datetime+city
-combined.drop_duplicates(subset=['datetime', 'city'], inplace=True)
-# Sort and save
-combined.sort_values(['city', 'datetime'], inplace=True)
-combined.to_csv('data/weather_clean.csv', index=False)
+    for loc in CITIES:
+        raw = fetch(loc["city"])
+        for entry in raw:
+            rows.append({
+                "current time (mm-dd-yy hh:mm:ss)": now_str,
+                "City":           loc["city"],
+                "State":          loc["state"],
+                "Country":        loc["country"],
+                "Temperature":    entry["temp"]["day"],
+                "Feels Like":     entry.get("feels_like", {}).get("day"),
+                "Humidity":       entry.get("humidity"),
+                "Precipitation":  entry.get("rain", 0),
+                "Pressure":       entry.get("pressure"),
+                "Wind Speed":     entry.get("wind_speed"),
+                "Wind Direction": entry.get("wind_deg"),
+                "Visibility":     entry.get("visibility"),
+                "Sunrise":        datetime.utcfromtimestamp(entry["sunrise"]).strftime("%H:%M:%S"),
+                "Sunset":         datetime.utcfromtimestamp(entry["sunset"]).strftime("%H:%M:%S"),
+            })
+    return rows
+
+def append_to_csv(rows, out_path=OUT_CSV):
+    df = pd.DataFrame(rows)
+    header = not os.path.exists(out_path)
+    df.to_csv(out_path, mode="a", index=False, header=header)
+    print(f"✅ Appended {len(df)} rows to {out_path}")
+
+if __name__ == "__main__":
+    rows = fetch_and_build_rows()
+    append_to_csv(rows)
