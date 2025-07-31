@@ -2,7 +2,7 @@
     "version": 1,
     "language": "en",
     "theme": {
-        "mode": "light",
+        "mode": "dark",
         "font_scale": 1.0
     },
     "units": {
@@ -20,7 +20,7 @@
         "format_24h": false
     },
     "forecast": {
-        "default_tab": "monthly"
+        "default_tab": "30_day"
     },
     "refresh": {
         "interval_seconds": 900
