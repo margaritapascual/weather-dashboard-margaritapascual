@@ -5,11 +5,13 @@ from .current_conditions_icons import load_icon
 from .historical_data import save_history
 from .temperature_graph import show_temp_chart
 from .theme_switcher import create_theme_menu, THEMES
+from .team_compare_random import TeamCompareRandomFrame  # NEW
 
 __all__ = [
     "load_icon",
     "save_history",
     "show_temp_chart",
     "create_theme_menu",
-    "THEMES"
+    "THEMES",
+    "TeamCompareRandomFrame",  # NEW
 ]

@@ -10,9 +10,11 @@ from core.weather_api import WeatherAPI
 from core.temp_predictor import TempPredictor
 from features.current_conditions_icons import load_icon
 from features.weather_alerts import show_alerts
+from features.team_compare_random import TeamCompareRandomFrame  # popup uses this frame
 import preferences
 
 FLASH_INTERVAL = 500  # ms for alert banner flash
+TEAM_DATA_DIR = "/Users/margaritapascual/JTC/Pathways/weather-dashboard-margaritapascual/Team Data"
 
 def launch_gui(weather_api, predictor):
     app = WeatherDashboard(weather_api, predictor)
@@ -23,6 +25,7 @@ class WeatherDashboard(tk.Tk):
         super().__init__()
         self.title("Margarita’s Weather Dashboard")
         self.prefs = preferences.load_preferences()
+        self._team_compare_win = None  # popup handle
 
         # --- Tabs setup ---
         nb = ttk.Notebook(self)
@@ -64,6 +67,7 @@ class WeatherDashboard(tk.Tk):
         self.refresh_all()
         self._update_system_clock()
 
+    # ---------- Theming ----------
     def _apply_theme(self, mode):
         dark = (mode == "dark")
         self.bg_color = "#2E3F4F" if dark else "#FFFFFF"
@@ -93,6 +97,7 @@ class WeatherDashboard(tk.Tk):
                         font=(None,14))
         self.current_theme = mode
 
+    # ---------- Top bar ----------
     def _build_top_bar(self):
         top = tk.Frame(self, bg=self.bg_color)
         top.pack(fill="x", pady=(8,0))
@@ -112,10 +117,55 @@ class WeatherDashboard(tk.Tk):
 
         ttk.Button(top, text="Update", command=self._update_city).pack(side="left", padx=4)
         ttk.Button(top, text="Theme",  command=self._toggle_theme).pack(side="left", padx=4)
+
+        # Team Compare popup button
+        ttk.Button(top, text="Team Compare", command=self._open_team_compare).pack(side="left", padx=4)
+
         ttk.Button(top, text="Exit",   command=self.destroy).pack(side="left", padx=4)
 
+    def _open_team_compare(self):
+        # if already open, bring to front
+        if self._team_compare_win and self._team_compare_win.winfo_exists():
+            self._team_compare_win.deiconify()
+            self._team_compare_win.lift()
+            self._team_compare_win.focus_force()
+            return
+
+        win = tk.Toplevel(self)
+        win.title("Team Compare (Random)")
+        win.configure(bg=self.bg_color)
+        win.bg_color = self.bg_color
+        win.fg_color = self.fg_color
+
+        # size & center
+        w, h = 980, 580
+        self.update_idletasks()
+        try:
+            px, py = self.winfo_x(), self.winfo_y()
+            pw, ph = self.winfo_width(), self.winfo_height()
+            x = max(0, px + (pw - w)//2)
+            y = max(0, py + (ph - h)//2)
+        except Exception:
+            x, y = 100, 80
+        win.geometry(f"{w}x{h}+{x}+{y}")
+        win.transient(self)  # keep on top
+
+        container = tk.Frame(win, bg=self.bg_color)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        frm = TeamCompareRandomFrame(
+            container,
+            default_dir=TEAM_DATA_DIR
+        )
+        frm.pack(fill="both", expand=True)
+
+        def _on_close():
+            self._team_compare_win = None
+            win.destroy()
+        win.protocol("WM_DELETE_WINDOW", _on_close)
+        self._team_compare_win = win
+
     def _toggle_theme(self):
-        # Called by the "Theme" button
         new = "light" if self.current_theme == "dark" else "dark"
         self.theme_var.set(new)
         self._save_theme()
@@ -125,6 +175,7 @@ class WeatherDashboard(tk.Tk):
         preferences.save_preferences(self.prefs)
         self.refresh_all()
 
+    # ---------- Overview ----------
     def _build_overview(self):
         f = self.tab_overview
         for i in range(5):
@@ -190,6 +241,7 @@ class WeatherDashboard(tk.Tk):
             pop = ttk.Label(frm, text="--% rain", style="SubText.TLabel"); pop.pack()
             self.five_cards.append((ic, day, hl, pop))
 
+    # ---------- Forecast ----------
     def _build_forecast(self):
         f = self.tab_forecast
         cols = ("Day","Hi","Lo","Precip")
@@ -199,6 +251,7 @@ class WeatherDashboard(tk.Tk):
             self.tree.column(c, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
+    # ---------- Charts ----------
     def _build_charts(self):
         f = self.tab_charts
         btnf = tk.Frame(f, bg=self.bg_color); btnf.pack(fill="x", pady=(10,0))
@@ -207,9 +260,13 @@ class WeatherDashboard(tk.Tk):
                         ("30-Day","30_day"),("Monthly","monthly")]:
             tk.Button(btnf, text=lbl, font=(None,12),
                       command=lambda v=val:self._set_freq(v)).pack(side="left", padx=5)
+
         fig = Figure(figsize=(6,4), dpi=100)
         self.ax = fig.add_subplot(111)
+        fig.tight_layout()  # <-- do this on the Figure itself
+
         self.canvas = FigureCanvasTkAgg(fig, master=f)
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill="both", expand=True, padx=10, pady=10)
 
     def _set_freq(self, val):
@@ -218,11 +275,13 @@ class WeatherDashboard(tk.Tk):
         preferences.save_preferences(self.prefs)
         self._plot_chart()
 
+    # ---------- Alerts ----------
     def _build_alerts_tab(self):
         f = self.tab_alerts; f.configure(bg=self.bg_color)
         self.alerts_frame = tk.Frame(f, bg=self.bg_color)
         self.alerts_frame.pack(fill="both", expand=True)
 
+    # ---------- Settings ----------
     def _build_settings(self):
         f = self.tab_settings; f.configure(bg=self.bg_color)
         row = 0
@@ -251,10 +310,16 @@ class WeatherDashboard(tk.Tk):
         for i,t in enumerate(("line","bar","both")):
             ttk.Radiobutton(f, text=t.title(), variable=self.chart_type, value=t, command=self._save_settings).grid(row=row, column=1+i)
 
+    # ---------- Prefs ----------
     def _save_theme(self):
         self.prefs["theme"]["mode"] = self.theme_var.get()
         preferences.save_preferences(self.prefs)
         self._apply_theme(self.theme_var.get())
+        # re-theme popup if open
+        if self._team_compare_win and self._team_compare_win.winfo_exists():
+            self._team_compare_win.configure(bg=self.bg_color)
+            self._team_compare_win.bg_color = self.bg_color
+            self._team_compare_win.fg_color = self.fg_color
         self.refresh_all()
 
     def _save_settings(self):
@@ -265,6 +330,7 @@ class WeatherDashboard(tk.Tk):
         preferences.save_preferences(self.prefs)
         self.refresh_all()
 
+    # ---------- Data refresh ----------
     def refresh_all(self):
         city   = self.city_var.get()
         cur    = self.weather.get_current(city)
@@ -341,6 +407,7 @@ class WeatherDashboard(tk.Tk):
         self._daily = daily
         self._plot_chart()
 
+    # ---------- Clocks ----------
     def _update_clock(self):
         now = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(seconds=self.tz_offset)
         date_str = now.strftime("%A, %b %d, %Y")
@@ -365,6 +432,7 @@ class WeatherDashboard(tk.Tk):
         self._flash_state = not self._flash_state
         self._flash_job = self.after(FLASH_INTERVAL, self._flash_banner)
 
+    # ---------- Charting ----------
     def _plot_chart(self):
         freq = self.freq.get()
         subset = {
@@ -405,8 +473,8 @@ class WeatherDashboard(tk.Tk):
         self.ax.set_xticklabels(dates, rotation=45)
 
         try:
-            pd, pt = self.predictor.get_series(self.city_var.get(), freq)
-            self.ax.plot(pd, pt, linestyle=":", color="purple", label="ML Pred")
+            pdx, pt = self.predictor.get_series(self.city_var.get(), freq)
+            self.ax.plot(pdx, pt, linestyle=":", color="purple", label="ML Pred")
         except Exception:
             pass
 

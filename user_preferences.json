@@ -10,7 +10,7 @@
         "wind_speed": "mph"
     },
     "location": {
-        "default_city": "Miami",
+        "default_city": "Los Angeles",
         "favorites": []
     },
     "chart": {
@@ -20,7 +20,7 @@
         "format_24h": false
     },
     "forecast": {
-        "default_tab": "30_day"
+        "default_tab": "monthly"
     },
     "refresh": {
         "interval_seconds": 900

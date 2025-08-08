@@ -1,0 +1,427 @@
+# features/team_compare_random.py
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+from pathlib import Path
+import random
+import re
+import pandas as pd
+
+# =========================
+#   Preferences / Music
+# =========================
+PREFERRED_GENRES = ["happy", "r&b", "hip-hop", "pop", "jazz"]
+
+SONG_BUCKETS = {
+    "rain": [
+        {"title":"Umbrella","artist":"Rihanna","genres":["pop","r&b","happy"]},
+        {"title":"No Rain","artist":"Blind Melon","genres":["pop","happy"]},
+        {"title":"Rainy Days","artist":"Mary J. Blige","genres":["r&b"]},
+    ],
+    "snow": [
+        {"title":"Let It Snow!","artist":"Frank Sinatra","genres":["jazz","happy"]},
+        {"title":"Snow (Hey Oh)","artist":"Red Hot Chili Peppers","genres":["pop"]},
+        {"title":"My Favorite Things","artist":"John Coltrane","genres":["jazz"]},
+    ],
+    "storm": [
+        {"title":"Thunderstruck","artist":"AC/DC","genres":["pop"]},
+        {"title":"All of the Lights","artist":"Kanye West","genres":["hip-hop","pop"]},
+        {"title":"Electric Feel","artist":"MGMT","genres":["pop"]},
+    ],
+    "clear": [
+        {"title":"Here Comes the Sun","artist":"The Beatles","genres":["pop","happy"]},
+        {"title":"Walking on Sunshine","artist":"Katrina & The Waves","genres":["pop","happy"]},
+        {"title":"Lovely Day","artist":"Bill Withers","genres":["r&b","happy"]},
+    ],
+    "clouds": [
+        {"title":"Blue Skies","artist":"Ella Fitzgerald","genres":["jazz","happy"]},
+        {"title":"Sunday Best","artist":"Surfaces","genres":["pop","happy"]},
+        {"title":"Cloud 9","artist":"Jamiroquai","genres":["pop","happy"]},
+    ],
+    "wind": [
+        {"title":"September","artist":"Earth, Wind & Fire","genres":["r&b","happy","pop"]},
+        {"title":"The Way You Make Me Feel","artist":"Michael Jackson","genres":["pop","r&b","happy"]},
+        {"title":"Blowin’ in the Wind","artist":"Bob Dylan","genres":["pop"]},
+    ],
+    "hot": [
+        {"title":"Heat Waves","artist":"Glass Animals","genres":["pop"]},
+        {"title":"Hot in Herre","artist":"Nelly","genres":["hip-hop","pop"]},
+        {"title":"Uptown Funk","artist":"Mark Ronson ft. Bruno Mars","genres":["pop","r&b","happy"]},
+    ],
+    "cold": [
+        {"title":"Put Your Records On","artist":"Corinne Bailey Rae","genres":["r&b","pop","happy"]},
+        {"title":"Ice Ice Baby","artist":"Vanilla Ice","genres":["hip-hop","pop","happy"]},
+        {"title":"Suavemente","artist":"Elvis Crespo","genres":["pop","happy"]},
+    ],
+    "fog": [
+        {"title":"Feeling Good","artist":"Nina Simone","genres":["jazz","happy"]},
+        {"title":"Golden","artist":"Jill Scott","genres":["r&b","happy"]},
+        {"title":"Sunflower","artist":"Post Malone & Swae Lee","genres":["hip-hop","pop","happy"]},
+    ],
+    "default": [
+        {"title":"Weather With You","artist":"Crowded House","genres":["pop","happy"]},
+        {"title":"Good as Hell","artist":"Lizzo","genres":["pop","hip-hop","happy"]},
+        {"title":"Happy","artist":"Pharrell Williams","genres":["pop","happy"]},
+    ],
+}
+
+def _norm_genre(g: str) -> str:
+    return g.strip().lower().replace(" ", "-")
+
+def _pick_song(category: str, preferred_genres=PREFERRED_GENRES):
+    prefs = {_norm_genre(g) for g in preferred_genres}
+    songs = SONG_BUCKETS.get(category, []) or SONG_BUCKETS["default"]
+    filtered = [s for s in songs if any(_norm_genre(g) in prefs for g in s["genres"])]
+    s = random.choice(filtered or songs)
+    return s["title"], s["artist"]
+
+# =========================
+#   CSV / Schema helpers
+# =========================
+CANONICAL_ORDER = [
+    "datetime", "city", "state", "country",
+    "temperature", "feels_like", "humidity",
+    "precipitation", "pop", "wind_speed", "weather",
+]
+FRIENDLY = {
+    "datetime":"Datetime", "city":"City", "state":"State", "country":"Country",
+    "temperature":"Temp(°F)", "feels_like":"Feels(°F)", "humidity":"Humidity (%)",
+    "precipitation":"Precip", "pop":"POP (%)", "wind_speed":"Wind", "weather":"Weather",
+}
+
+ALIASES = {
+    "datetime":     ["datetime","date_time","dt","time","timestamp","local_time","obs_time"],
+    "city":         ["city","location_city","name","town"],
+    "state":        ["state","region","province","us_state","state_code"],
+    "country":      ["country","country_code","nation","iso2","country_name"],
+    "temperature":  ["temperature","temp","temp_f","tempf","t","t_f","current_temp","temp_fahrenheit"],
+    "feels_like":   ["feels_like","apparent_temperature","heat_index","feels","feelslike_f","feels_f"],
+    "humidity":     ["humidity","hum","rh","humidity_percent","humidity_%"],
+    "precipitation":["precipitation","precip","rain","rain_1h","rain_3h","mm","precip_mm","precip_in"],
+    "pop":          ["pop","precip_prob","precipitation_probability","chance_of_rain","prob_rain","pop_%"],
+    "wind_speed":   ["wind_speed","wind","wind_mph","wind_speed_mph","wind_kph","windSpeed"],
+    "weather":      ["weather","weather_desc","conditions","description","summary","wx"],
+}
+
+NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
+
+def _norm(s: str) -> str:
+    return NORMALIZE_RE.sub("_", str(s).strip().lower()).strip("_")
+
+def _infer_mapping(columns):
+    cols = [_norm(c) for c in columns]
+    mapping = {}
+    used_idx = set()
+    for canon, alts in ALIASES.items():
+        # exact match on normalized name
+        for i, c in enumerate(cols):
+            if i in used_idx: 
+                continue
+            if c in alts:
+                mapping[columns[i]] = canon
+                used_idx.add(i)
+                break
+        # substring/startswith fallback
+        if canon not in mapping.values():
+            for i, c in enumerate(cols):
+                if i in used_idx:
+                    continue
+                if any(c.startswith(a) or a in c for a in alts):
+                    mapping[columns[i]] = canon
+                    used_idx.add(i)
+                    break
+    return mapping
+
+def _load_csv_paths(data_dir: Path):
+    if not data_dir.is_dir():
+        raise FileNotFoundError(f"Directory not found: {data_dir}")
+    return [p for p in data_dir.rglob("*") if p.is_file() and p.suffix.lower() == ".csv"]
+
+def _read_csv(path: Path) -> pd.DataFrame:
+    # Try several ways (delimiters / header handling)
+    attempts = [
+        {},  # default
+        {"engine":"python", "on_bad_lines":"skip"},
+        {"encoding":"latin-1"},
+        {"sep":";"},
+        {"sep":"|"},
+        {"sep":None, "engine":"python"},  # sniff
+    ]
+    for kw in attempts:
+        try:
+            df = pd.read_csv(path, **kw)
+            if df is not None and df.shape[1] > 0:
+                df = _maybe_fix_header(df)
+                return df
+        except Exception:
+            continue
+    # last resort
+    df = pd.read_csv(path, engine="python", on_bad_lines="skip")
+    return _maybe_fix_header(df)
+
+def _maybe_fix_header(df: pd.DataFrame) -> pd.DataFrame:
+    """If we didn't get useful column names, try promoting first row to header."""
+    # If no alpha characters in headers, or headers look like 0..N
+    norm_cols = [_norm(c) for c in df.columns]
+    has_canonical = any(n in ALIASES for n in norm_cols)
+    looks_numeric_headers = all(str(c).isdigit() for c in df.columns)
+    if not has_canonical or looks_numeric_headers:
+        if len(df) > 1:
+            first = df.iloc[0].astype(str).tolist()
+            if any(any(ch.isalpha() for ch in cell) for cell in first):
+                df2 = df.copy()
+                df2.columns = [c.strip() for c in first]
+                df2 = df2.drop(df2.index[0]).reset_index(drop=True)
+                return df2
+    return df
+
+def _rename_to_canonical(df: pd.DataFrame) -> pd.DataFrame:
+    mapping = _infer_mapping(list(df.columns))
+    if mapping:
+        df = df.rename(columns=mapping)
+    return df
+
+def _normalize_types(df: pd.DataFrame) -> pd.DataFrame:
+    def to_float(col, scale=None):
+        if col not in df.columns: 
+            return
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        if scale == "pop01_to_pct":
+            df[col] = df[col].apply(lambda v: v*100 if pd.notna(v) and v <= 1 else v)
+    to_float("temperature")
+    to_float("feels_like")
+    to_float("humidity")
+    to_float("precipitation")
+    to_float("pop", scale="pop01_to_pct")
+    to_float("wind_speed")
+    return df
+
+KEYS_FOR_SCORE = {"temperature","feels_like","humidity","precipitation","pop","wind_speed","weather","city","country"}
+
+def _row_score(row: pd.Series) -> int:
+    return sum(1 for k in KEYS_FOR_SCORE if k in row.index and pd.notna(row[k]) and str(row[k]).strip() != "")
+
+def _row_is_valid(row: pd.Series) -> bool:
+    # At least 3 meaningful fields, and at least one of (temperature, feels_like, weather)
+    base = _row_score(row) >= 3
+    one_key = any(k in row.index and pd.notna(row.get(k)) and str(row.get(k)).strip() != "" 
+                  for k in ("temperature","feels_like","weather"))
+    return base and one_key
+
+def _sample_valid_row(df: pd.DataFrame, tries: int = 30) -> pd.Series | None:
+    if df.empty:
+        return None
+    # Prefer rows with higher "score"
+    for _ in range(min(tries, len(df))):
+        row = df.sample(1).iloc[0]
+        if _row_is_valid(row):
+            return row
+    # fallback: the best-scoring row
+    best = None
+    best_score = -1
+    for _, row in df.iterrows():
+        s = _row_score(row)
+        if s > best_score:
+            best, best_score = row, s
+    return best
+
+# =========================
+#   Weather + Recs
+# =========================
+def _classify_weather(row) -> str:
+    desc = str(row.get("weather","")).lower()
+    pop = row.get("pop", 0) or 0
+    try: pop = float(pop)
+    except Exception: pop = 0.0
+    if pop <= 1: pop *= 100
+    precip = row.get("precipitation", 0) or 0
+    try: precip = float(precip)
+    except Exception: precip = 0.0
+    wind = row.get("wind_speed", 0) or 0
+    try: wind = float(wind)
+    except Exception: wind = 0.0
+    temp = row.get("temperature", row.get("feels_like", 0)) or 0
+    try: temp = float(temp)
+    except Exception: temp = 0.0
+
+    if any(k in desc for k in ("thunder","storm","lightning")):
+        return "storm"
+    if "snow" in desc:
+        return "snow"
+    if any(k in desc for k in ("rain","drizzle","shower")) or precip > 0 or pop >= 50:
+        return "rain"
+    if any(k in desc for k in ("fog","mist","haze","smoke")):
+        return "fog"
+    if wind >= 20 or "wind" in desc:
+        return "wind"
+    if temp >= 90:
+        return "hot"
+    if temp <= 40:
+        return "cold"
+    if any(k in desc for k in ("clear","sun")):
+        return "clear"
+    if "cloud" in desc or "overcast" in desc:
+        return "clouds"
+    return "default"
+
+def _recommend(row) -> str:
+    category = _classify_weather(row)
+    title, artist = _pick_song(category, PREFERRED_GENRES)
+
+    msg = {
+        "rain":"Likely rain—umbrella/museum day.",
+        "snow":"Snowy—bundle up and watch for slick roads.",
+        "storm":"Storms around—limit outdoor plans.",
+        "fog":"Foggy—take it easy on the roads.",
+        "wind":"Windy—secure hats/umbrellas.",
+        "hot":"Very warm—hydrate and take shade breaks.",
+        "cold":"Chilly—layers recommended.",
+        "clear":"Sunny and pleasant—great day to be outside.",
+        "clouds":"Cloudy but fine for most plans.",
+        "default":"Dress comfortably.",
+    }.get(category, "Dress comfortably.")
+    return f"{msg}  ♪ “{title}” — {artist}"
+
+# =========================
+#   UI Frame
+# =========================
+class TeamCompareRandomFrame(ttk.Frame):
+    def __init__(self, parent, default_dir: str | Path | None = None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self._init_theme()
+
+        if default_dir is None:
+            for guess in [Path("../Capstone_Team_8/data"), Path("Team Data"), Path("data")]:
+                if guess.exists():
+                    default_dir = str(guess.resolve()); break
+        self.dir_var = tk.StringVar(value=str(default_dir) if default_dir else "")
+
+        self._build_ui()
+
+    # Theming to match the rest of the app
+    def _init_theme(self):
+        root = self.winfo_toplevel()
+        self._bg = getattr(root, "bg_color", "#FFFFFF")
+        self._fg = getattr(root, "fg_color", "#000000")
+        self._font = ("Helvetica", 12)
+
+        style = ttk.Style(self)
+        try: style.theme_use("clam")
+        except Exception: pass
+
+        style.configure("TeamRandom.TFrame", background=self._bg)
+        style.configure("TeamRandom.TLabel", background=self._bg, foreground=self._fg, font=self._font)
+        style.configure("TeamRandom.TButton", font=self._font)
+        style.configure("TeamRandom.TEntry", fieldbackground=self._bg, foreground=self._fg, insertcolor=self._fg)
+        style.configure("TeamRandom.Treeview", background=self._bg, fieldbackground=self._bg, foreground=self._fg, rowheight=24)
+        style.configure("TeamRandom.Treeview.Heading", background=self._bg, foreground=self._fg, font=(self._font[0], self._font[1], "bold"))
+        self.configure(style="TeamRandom.TFrame")
+
+    def _build_ui(self):
+        r = 0
+        ttk.Label(self, text="Team Data Folder:", style="TeamRandom.TLabel").grid(row=r, column=0, sticky="w", padx=(0,6), pady=(6,0))
+        ttk.Entry(self, textvariable=self.dir_var, width=60, style="TeamRandom.TEntry").grid(row=r, column=1, sticky="ew", pady=(6,0))
+        ttk.Button(self, text="Browse…", command=self._browse, style="TeamRandom.TButton").grid(row=r, column=2, padx=6, pady=(6,0))
+        ttk.Button(self, text="Compare Random", command=self._compare, style="TeamRandom.TButton").grid(row=r, column=3, pady=(6,0))
+        r += 1
+
+        self.status_var = tk.StringVar(value="")
+        ttk.Label(self, textvariable=self.status_var, style="TeamRandom.TLabel").grid(row=r, column=0, columnspan=4, sticky="w", pady=(6,6))
+        r += 1
+
+        self._tree_holder = ttk.Frame(self, style="TeamRandom.TFrame")
+        self._tree_holder.grid(row=r, column=0, columnspan=4, sticky="nsew")
+        r += 1
+
+        self.notes = tk.Text(self, height=5, wrap="word", borderwidth=0, highlightthickness=1)
+        self.notes.grid(row=r, column=0, columnspan=4, sticky="nsew", pady=(10,10))
+        self.notes.configure(bg=self._bg, fg=self._fg, insertbackground=self._fg, font=self._font)
+
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(r-1, weight=1)
+        self.rowconfigure(r-2, weight=1)
+
+        self._build_tree(columns=["file","city","weather","temperature"])
+
+    def _browse(self):
+        start = self.dir_var.get() or str(Path.home())
+        path = filedialog.askdirectory(title="Select Team Data folder", initialdir=start)
+        if path:
+            self.dir_var.set(path)
+
+    def _build_tree(self, columns):
+        for child in self._tree_holder.winfo_children():
+            child.destroy()
+        self.tree = ttk.Treeview(self._tree_holder, columns=columns, show="headings", height=8, style="TeamRandom.Treeview")
+        for c in columns:
+            text = "File" if c == "file" else FRIENDLY.get(c, c.title())
+            self.tree.heading(c, text=text, anchor="w")
+            self.tree.column(c, width=140, stretch=True, anchor="w")
+        self.tree.pack(fill="both", expand=True, pady=(4,0))
+
+    def _compare(self):
+        try:
+            data_dir = Path(self.dir_var.get()).expanduser().resolve()
+            csvs = _load_csv_paths(data_dir)
+            if len(csvs) < 2:
+                self.status_var.set(f"Using: {data_dir} — found {len(csvs)} CSVs (need ≥ 2)")
+                messagebox.showwarning("Need more files", f"Found {len(csvs)} CSVs in {data_dir} (need ≥ 2).")
+                return
+
+            f1, f2 = random.sample(csvs, 2)
+            self.status_var.set(f"Using: {data_dir} — found {len(csvs)} CSVs | Picked: {f1.name} vs {f2.name}")
+
+            df1, df2 = _read_csv(f1), _read_csv(f2)
+            df1, df2 = _rename_to_canonical(df1), _rename_to_canonical(df2)
+            df1, df2 = _normalize_types(df1), _normalize_types(df2)
+
+            row1 = _sample_valid_row(df1)
+            row2 = _sample_valid_row(df2)
+            if row1 is None:
+                row1 = df1.iloc[0] if len(df1) else None
+            if row2 is None:
+                row2 = df2.iloc[0] if len(df2) else None
+            if row1 is None or row2 is None:
+                self.status_var.set("Picked files contained no usable rows.")
+                return
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+            return
+
+        present1 = set(c for c in CANONICAL_ORDER if c in row1.index and str(row1.get(c,"")).strip() != "")
+        present2 = set(c for c in CANONICAL_ORDER if c in row2.index and str(row2.get(c,"")).strip() != "")
+        shared = ["file"] + [c for c in CANONICAL_ORDER if c in present1 & present2]
+        if len(shared) <= 1:
+            self.status_var.set("No common comparable fields between these two files.")
+            return
+
+        self._build_tree(shared)
+
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+
+        def fmt(v, key):
+            if pd.isna(v): 
+                return ""
+            if key in ("temperature","feels_like"):
+                try: return f"{float(v):.0f}"
+                except Exception: return str(v)
+            if key in ("humidity","pop"):
+                try: return f"{float(v):.0f}"
+                except Exception: return str(v)
+            return str(v)
+
+        vals1 = [f1.name] + [fmt(row1.get(k, ""), k) for k in shared[1:]]
+        vals2 = [f2.name] + [fmt(row2.get(k, ""), k) for k in shared[1:]]
+        self.tree.insert("", "end", values=vals1)
+        self.tree.insert("", "end", values=vals2)
+
+        self.notes.delete("1.0","end")
+        self.notes.insert("end", f"{f1.stem}: {_recommend(row1)}\n{f2.stem}: {_recommend(row2)}\n")
+try:
+    from weather_dashboard import WeatherDashboard  # Ensure weather_dashboard.py exists in the same directory or PYTHONPATH
+except ImportError:
+
+def launch_gui(weather_api, predictor):
+    # Minimal, no extra imports or checks
+    app = WeatherDashboard(weather_api, predictor)
+    app.mainloop()
