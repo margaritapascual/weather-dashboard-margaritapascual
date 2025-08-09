@@ -1,4 +1,4 @@
-# features/team_compare_random.py
+## features/team_compare_random.py
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
@@ -112,7 +112,6 @@ def _infer_mapping(columns):
     mapping = {}
     used_idx = set()
     for canon, alts in ALIASES.items():
-        # exact match on normalized name
         for i, c in enumerate(cols):
             if i in used_idx: 
                 continue
@@ -120,7 +119,6 @@ def _infer_mapping(columns):
                 mapping[columns[i]] = canon
                 used_idx.add(i)
                 break
-        # substring/startswith fallback
         if canon not in mapping.values():
             for i, c in enumerate(cols):
                 if i in used_idx:
@@ -137,14 +135,13 @@ def _load_csv_paths(data_dir: Path):
     return [p for p in data_dir.rglob("*") if p.is_file() and p.suffix.lower() == ".csv"]
 
 def _read_csv(path: Path) -> pd.DataFrame:
-    # Try several ways (delimiters / header handling)
     attempts = [
-        {},  # default
+        {},
         {"engine":"python", "on_bad_lines":"skip"},
         {"encoding":"latin-1"},
         {"sep":";"},
         {"sep":"|"},
-        {"sep":None, "engine":"python"},  # sniff
+        {"sep":None, "engine":"python"},
     ]
     for kw in attempts:
         try:
@@ -154,13 +151,10 @@ def _read_csv(path: Path) -> pd.DataFrame:
                 return df
         except Exception:
             continue
-    # last resort
     df = pd.read_csv(path, engine="python", on_bad_lines="skip")
     return _maybe_fix_header(df)
 
 def _maybe_fix_header(df: pd.DataFrame) -> pd.DataFrame:
-    """If we didn't get useful column names, try promoting first row to header."""
-    # If no alpha characters in headers, or headers look like 0..N
     norm_cols = [_norm(c) for c in df.columns]
     has_canonical = any(n in ALIASES for n in norm_cols)
     looks_numeric_headers = all(str(c).isdigit() for c in df.columns)
@@ -201,7 +195,6 @@ def _row_score(row: pd.Series) -> int:
     return sum(1 for k in KEYS_FOR_SCORE if k in row.index and pd.notna(row[k]) and str(row[k]).strip() != "")
 
 def _row_is_valid(row: pd.Series) -> bool:
-    # At least 3 meaningful fields, and at least one of (temperature, feels_like, weather)
     base = _row_score(row) >= 3
     one_key = any(k in row.index and pd.notna(row.get(k)) and str(row.get(k)).strip() != "" 
                   for k in ("temperature","feels_like","weather"))
@@ -210,12 +203,10 @@ def _row_is_valid(row: pd.Series) -> bool:
 def _sample_valid_row(df: pd.DataFrame, tries: int = 30) -> pd.Series | None:
     if df.empty:
         return None
-    # Prefer rows with higher "score"
     for _ in range(min(tries, len(df))):
         row = df.sample(1).iloc[0]
         if _row_is_valid(row):
             return row
-    # fallback: the best-scoring row
     best = None
     best_score = -1
     for _, row in df.iterrows():
@@ -263,10 +254,10 @@ def _classify_weather(row) -> str:
         return "clouds"
     return "default"
 
-def _recommend(row) -> str:
+def _recommend_parts(row):
+    """Return (msg, title, artist) so we can color the song part."""
     category = _classify_weather(row)
     title, artist = _pick_song(category, PREFERRED_GENRES)
-
     msg = {
         "rain":"Likely rain—umbrella/museum day.",
         "snow":"Snowy—bundle up and watch for slick roads.",
@@ -279,6 +270,11 @@ def _recommend(row) -> str:
         "clouds":"Cloudy but fine for most plans.",
         "default":"Dress comfortably.",
     }.get(category, "Dress comfortably.")
+    return msg, title, artist
+
+def _recommend(row) -> str:
+    # Backwards-compatible string for any other callers
+    msg, title, artist = _recommend_parts(row)
     return f"{msg}  ♪ “{title}” — {artist}"
 
 # =========================
@@ -297,12 +293,14 @@ class TeamCompareRandomFrame(ttk.Frame):
 
         self._build_ui()
 
-    # Theming to match the rest of the app
+    # Theming to match the rest of the app (LARGER FONTS + ACCENT COLOR)
     def _init_theme(self):
         root = self.winfo_toplevel()
         self._bg = getattr(root, "bg_color", "#FFFFFF")
         self._fg = getattr(root, "fg_color", "#000000")
-        self._font = ("Helvetica", 12)
+        self._font = ("Helvetica", 14)  # bigger base font
+        self._heading_font = ("Helvetica", 15, "bold")
+        self._accent = "#FF8800"  # matches your app’s orange
 
         style = ttk.Style(self)
         try: style.theme_use("clam")
@@ -312,8 +310,11 @@ class TeamCompareRandomFrame(ttk.Frame):
         style.configure("TeamRandom.TLabel", background=self._bg, foreground=self._fg, font=self._font)
         style.configure("TeamRandom.TButton", font=self._font)
         style.configure("TeamRandom.TEntry", fieldbackground=self._bg, foreground=self._fg, insertcolor=self._fg)
-        style.configure("TeamRandom.Treeview", background=self._bg, fieldbackground=self._bg, foreground=self._fg, rowheight=24)
-        style.configure("TeamRandom.Treeview.Heading", background=self._bg, foreground=self._fg, font=(self._font[0], self._font[1], "bold"))
+        style.configure("TeamRandom.Treeview",
+                        background=self._bg, fieldbackground=self._bg, foreground=self._fg,
+                        rowheight=28, font=self._font)
+        style.configure("TeamRandom.Treeview.Heading",
+                        background=self._bg, foreground=self._fg, font=self._heading_font)
         self.configure(style="TeamRandom.TFrame")
 
     def _build_ui(self):
@@ -332,9 +333,11 @@ class TeamCompareRandomFrame(ttk.Frame):
         self._tree_holder.grid(row=r, column=0, columnspan=4, sticky="nsew")
         r += 1
 
-        self.notes = tk.Text(self, height=5, wrap="word", borderwidth=0, highlightthickness=1)
+        # Notes: bigger font + song tag color
+        self.notes = tk.Text(self, height=6, wrap="word", borderwidth=0, highlightthickness=1)
         self.notes.grid(row=r, column=0, columnspan=4, sticky="nsew", pady=(10,10))
         self.notes.configure(bg=self._bg, fg=self._fg, insertbackground=self._fg, font=self._font)
+        self.notes.tag_configure("song", foreground=self._accent, font=(self._font[0], self._font[1]+1, "bold"))
 
         self.columnconfigure(1, weight=1)
         self.rowconfigure(r-1, weight=1)
@@ -355,7 +358,7 @@ class TeamCompareRandomFrame(ttk.Frame):
         for c in columns:
             text = "File" if c == "file" else FRIENDLY.get(c, c.title())
             self.tree.heading(c, text=text, anchor="w")
-            self.tree.column(c, width=140, stretch=True, anchor="w")
+            self.tree.column(c, width=160, stretch=True, anchor="w")
         self.tree.pack(fill="both", expand=True, pady=(4,0))
 
     def _compare(self):
@@ -415,5 +418,11 @@ class TeamCompareRandomFrame(ttk.Frame):
         self.tree.insert("", "end", values=vals1)
         self.tree.insert("", "end", values=vals2)
 
+        # Notes: insert with color tag for the song part
         self.notes.delete("1.0","end")
-        self.notes.insert("end", f"{f1.stem}: {_recommend(row1)}\n{f2.stem}: {_recommend(row2)}\n")
+        for label, row in ((f1.stem, row1), (f2.stem, row2)):
+            msg, title, artist = _recommend_parts(row)
+            self.notes.insert("end", f"{label}: {msg}  ")
+            start = self.notes.index("end")
+            self.notes.insert("end", f"♪ “{title}” — {artist}\n")
+            self.notes.tag_add("song", start, "end-1c")

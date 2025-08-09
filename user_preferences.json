@@ -10,7 +10,7 @@
         "wind_speed": "mph"
     },
     "location": {
-        "default_city": "Los Angeles",
+        "default_city": "Memphis",
         "favorites": []
     },
     "chart": {
@@ -20,7 +20,7 @@
         "format_24h": false
     },
     "forecast": {
-        "default_tab": "monthly"
+        "default_tab": "30_day"
     },
     "refresh": {
         "interval_seconds": 900
