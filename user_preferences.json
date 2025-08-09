@@ -10,7 +10,7 @@
         "wind_speed": "mph"
     },
     "location": {
-        "default_city": "New York",
+        "default_city": "Paris",
         "favorites": []
     },
     "chart": {

@@ -1,103 +1,80 @@
-# Weather Dashboard App
+# Margarita’s Weather Dashboard
 
-A desktop application that fetches and displays current weather conditions, alerts, and multi-day forecasts ## Repository
-[https://github.com/margaritapascual/weather-dashboard-margaritapascual](https://github.com/margaritapascual/weather-dashboard-margaritapascual)
+A polished Tkinter app that shows current weather, forecasts, alerts, charts, and a fun **Team Compare** popup that samples teammates’ CSVs and suggests a **song** based on the weather.
 
-## Features
+## ✨ Features
 
-- **Current Conditions** (temperature, humidity, UV index, icons)  
-- **Weather Alerts** via pop-up dialogs  
-- **Multi-day Forecasts**: Daily, 7-Day, and 30-Day charts (temperature, humidity, precipitation)  - **Theme Toggle** (light/dark mode)  
-- **Historical Data** saved to a local SQLite database  
-- **Easy Configuration** via `.env` or `config.py`
+- Current conditions with icons, highs/lows, UV, humidity, precip %
+- 5-day cards + detailed forecast table
+- Alerts banner with flashing indicator
+- Forecast chart (Daily, Weekly/7-Day, 30-Day)
+- **Team Compare (Random):** picks two team CSVs, compares shared fields only, validates rows (no blanks), gives a weather-based song suggestion; optional **Quiz Mode**
+- Theme toggle (Light/Dark), language toggle (EN/ES), units (°F/°C)
+- Preferences saved to `user_preferences.json`
 
-## Getting Started
+## 🚀 Setup
+```bash
+git clone <YOUR-REPO-URL>
+cd weather-dashboard-margaritapascual
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # put your OpenWeatherMap key in .env
+python main.py
 
-### Prerequisites
+🧑‍🏫 Usage
+Enter a city and click Update.
 
-- Python 3.10 or higher  
-- An OpenWeatherMap API key  
-- Git
+Use Settings to change theme, units, language.
 
-### Installation
+Click Team Compare (top bar):
 
-1. **Clone the repository**  
+Choose your team CSV folder.
 
-   ```bash
-   python -m venv .venv 
-   source .venv/bin/activate # macOS/Linux 
-   .venv\Scripts\activate.bat # Windows 
-   ```
+Compare Random selects two CSVs and valid rows (no blanks), shows shared columns.
 
-2. **Install dependencies**  
+Weather-based song suggestion appears at the bottom.
 
-   ```bash
-   pip install -r requirements.txt 
-   ```
+Quiz Mode (optional): “Which city is warmer?” mini-game.
 
-3. **Configure environment variables**  
+Suggested local folder:
+/Users/margaritapascual/JTC/Pathways/weather-dashboard-margaritapascual/Team Dat📦 Build (optional)
+bash
+Copy
+Edit
+python build.py
+🎬 Demo Video
+Add your ≤5-min video link here.
 
-   - Copy `.env.example` to `.env`  
-   - Edit `.env` to include your API key and settings:
+📑 Slide Deck
+Add your Google Slides / PDF link here.
 
-   ```ini
-   WEATHER_API_KEY=your_api_key_here 
-   REQUEST_TIMEOUT=10 
-   MAX_RETRIES=3 
-   ```
+🔖 Versioning
+Current release: v1.0
 
-### Usage
+📂 Structure
+graphql
+Copy
+Edit
+core/                  # API + predictor
+features/              # icons, alerts, team compare
+tools/                 # maintenance (repo_cleaner)
+data/                  # local data; heavy files archived under data/archive/
+Team Data/             # local CSVs for compare (not committed)
+gui.py                 # main Tk app
+main.py                # entry point
+🛠 Troubleshooting
+If the app can’t find your key, check .env.
+
+If charts crowd, resize the window; axes are responsive.
+MD
+
+sql
+Copy
+Edit
+
+Then commit it:
 
 ```bash
-python main.py 
-```
-
-- Enter a city name in the input field and click **Update**.  
-- Use the **Mode** buttons to switch between Daily, 7-Day Temp, and 30-Day Temp charts.  
-- Toggle between light and dark themes with the **Toggle Theme** button.  
-
-## Repository Structure
-
-```plaintext
-weather-dashboard-margaritapascual/ 
-weather-dashboard-margaritapascual/
-│
-├─ README.md
-├─ requirements.txt
-├─ .gitignore
-├─ .env.example
-│
-├─ main.py
-├─ gui.py
-├─ config.py
-│
-├─ core/
-│  ├─ api/
-│  │   └─ weather_api.py
-│  ├─ db/
-│  │   ├─ db.py
-│  │   └─ weather_storage.py
-│  └─ jobs/
-│      └─ weather_jobs.py
-│
-├─ features/
-│  ├─ current_conditions_icons.py
-│  ├─ historical_data.py
-│  ├─ temperature_graph.py
-│  └─ theme_switcher.py
-│
-├─ data/
-│  └─ weather.db
-│
-├─ tests/
-│  └─ test_*.py
-│
-└─ docs/
-   ├─ ui-mockups/
-   │   ├─ 01-empty-launch.png
-   │   ├─ 02-current-conditions.png
-   │   ├─ 03-7day-icons.png
-   │   ├─ 04-7day-temp-chart.png
-   │   ├─ 05-30day-temp-chart.png
-   │   └─ 06-dark-theme.png
-   └─ timeline.md
+git add README.md
+git commit -m "docs: final README for v1.0"a
