@@ -1,428 +1,414 @@
-## features/team_compare_random.py
+# features/team_compare_random.py
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 import random
-import re
 import pandas as pd
 
-# =========================
-#   Preferences / Music
-# =========================
-PREFERRED_GENRES = ["happy", "r&b", "hip-hop", "pop", "jazz"]
+ORANGE = "#FF8800"  # accent to match your app
+BLUE   = "#00AAFF"
 
-SONG_BUCKETS = {
-    "rain": [
-        {"title":"Umbrella","artist":"Rihanna","genres":["pop","r&b","happy"]},
-        {"title":"No Rain","artist":"Blind Melon","genres":["pop","happy"]},
-        {"title":"Rainy Days","artist":"Mary J. Blige","genres":["r&b"]},
-    ],
-    "snow": [
-        {"title":"Let It Snow!","artist":"Frank Sinatra","genres":["jazz","happy"]},
-        {"title":"Snow (Hey Oh)","artist":"Red Hot Chili Peppers","genres":["pop"]},
-        {"title":"My Favorite Things","artist":"John Coltrane","genres":["jazz"]},
-    ],
-    "storm": [
-        {"title":"Thunderstruck","artist":"AC/DC","genres":["pop"]},
-        {"title":"All of the Lights","artist":"Kanye West","genres":["hip-hop","pop"]},
-        {"title":"Electric Feel","artist":"MGMT","genres":["pop"]},
-    ],
-    "clear": [
-        {"title":"Here Comes the Sun","artist":"The Beatles","genres":["pop","happy"]},
-        {"title":"Walking on Sunshine","artist":"Katrina & The Waves","genres":["pop","happy"]},
-        {"title":"Lovely Day","artist":"Bill Withers","genres":["r&b","happy"]},
-    ],
-    "clouds": [
-        {"title":"Blue Skies","artist":"Ella Fitzgerald","genres":["jazz","happy"]},
-        {"title":"Sunday Best","artist":"Surfaces","genres":["pop","happy"]},
-        {"title":"Cloud 9","artist":"Jamiroquai","genres":["pop","happy"]},
-    ],
-    "wind": [
-        {"title":"September","artist":"Earth, Wind & Fire","genres":["r&b","happy","pop"]},
-        {"title":"The Way You Make Me Feel","artist":"Michael Jackson","genres":["pop","r&b","happy"]},
-        {"title":"Blowin’ in the Wind","artist":"Bob Dylan","genres":["pop"]},
-    ],
-    "hot": [
-        {"title":"Heat Waves","artist":"Glass Animals","genres":["pop"]},
-        {"title":"Hot in Herre","artist":"Nelly","genres":["hip-hop","pop"]},
-        {"title":"Uptown Funk","artist":"Mark Ronson ft. Bruno Mars","genres":["pop","r&b","happy"]},
-    ],
-    "cold": [
-        {"title":"Put Your Records On","artist":"Corinne Bailey Rae","genres":["r&b","pop","happy"]},
-        {"title":"Ice Ice Baby","artist":"Vanilla Ice","genres":["hip-hop","pop","happy"]},
-        {"title":"Suavemente","artist":"Elvis Crespo","genres":["pop","happy"]},
-    ],
-    "fog": [
-        {"title":"Feeling Good","artist":"Nina Simone","genres":["jazz","happy"]},
-        {"title":"Golden","artist":"Jill Scott","genres":["r&b","happy"]},
-        {"title":"Sunflower","artist":"Post Malone & Swae Lee","genres":["hip-hop","pop","happy"]},
-    ],
-    "default": [
-        {"title":"Weather With You","artist":"Crowded House","genres":["pop","happy"]},
-        {"title":"Good as Hell","artist":"Lizzo","genres":["pop","hip-hop","happy"]},
-        {"title":"Happy","artist":"Pharrell Williams","genres":["pop","happy"]},
-    ],
-}
-
-def _norm_genre(g: str) -> str:
-    return g.strip().lower().replace(" ", "-")
-
-def _pick_song(category: str, preferred_genres=PREFERRED_GENRES):
-    prefs = {_norm_genre(g) for g in preferred_genres}
-    songs = SONG_BUCKETS.get(category, []) or SONG_BUCKETS["default"]
-    filtered = [s for s in songs if any(_norm_genre(g) in prefs for g in s["genres"])]
-    s = random.choice(filtered or songs)
-    return s["title"], s["artist"]
-
-# =========================
-#   CSV / Schema helpers
-# =========================
-CANONICAL_ORDER = [
-    "datetime", "city", "state", "country",
-    "temperature", "feels_like", "humidity",
-    "precipitation", "pop", "wind_speed", "weather",
-]
-FRIENDLY = {
-    "datetime":"Datetime", "city":"City", "state":"State", "country":"Country",
-    "temperature":"Temp(°F)", "feels_like":"Feels(°F)", "humidity":"Humidity (%)",
-    "precipitation":"Precip", "pop":"POP (%)", "wind_speed":"Wind", "weather":"Weather",
-}
-
+# Column alias → canonical name
 ALIASES = {
-    "datetime":     ["datetime","date_time","dt","time","timestamp","local_time","obs_time"],
-    "city":         ["city","location_city","name","town"],
-    "state":        ["state","region","province","us_state","state_code"],
-    "country":      ["country","country_code","nation","iso2","country_name"],
-    "temperature":  ["temperature","temp","temp_f","tempf","t","t_f","current_temp","temp_fahrenheit"],
-    "feels_like":   ["feels_like","apparent_temperature","heat_index","feels","feelslike_f","feels_f"],
-    "humidity":     ["humidity","hum","rh","humidity_percent","humidity_%"],
-    "precipitation":["precipitation","precip","rain","rain_1h","rain_3h","mm","precip_mm","precip_in"],
-    "pop":          ["pop","precip_prob","precipitation_probability","chance_of_rain","prob_rain","pop_%"],
-    "wind_speed":   ["wind_speed","wind","wind_mph","wind_speed_mph","wind_kph","windSpeed"],
-    "weather":      ["weather","weather_desc","conditions","description","summary","wx"],
+    "city": ["city", "name", "location", "town"],
+    "state": ["state", "region", "province", "state_code"],
+    "country": ["country", "country_code", "nation"],
+    "temp": ["temp", "temperature", "temp_f", "current_temp_f", "current_temp", "temperature_f"],
+    "feels_like": ["feels_like", "feelslike", "app_temp", "apparent_temp"],
+    "humidity": ["humidity", "hum", "rh"],
+    "pop": ["pop", "precip_prob", "rain_chance", "precipitation_probability"],
+    "pressure": ["pressure", "press", "baro"],
+    "wind_speed": ["wind_speed", "wind", "wind_mph", "wind_speed_mph"],
+    "wind_deg": ["wind_deg", "wind_direction", "wind_dir_deg"],
+    "weather_desc": ["weather", "conditions", "description", "desc", "summary"],
+    "sunrise": ["sunrise", "sunrise_local"],
+    "sunset": ["sunset", "sunset_local"],
+    "time_local": ["local_time", "time_local", "as_of", "timestamp_local"],
 }
 
-NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
+PREFERRED_COL_ORDER = [
+    "city", "state", "country", "weather_desc", "temp", "feels_like",
+    "humidity", "pop", "pressure", "wind_speed", "wind_deg", "sunrise", "sunset", "time_local"
+]
 
-def _norm(s: str) -> str:
-    return NORMALIZE_RE.sub("_", str(s).strip().lower()).strip("_")
+NUMERIC_COLS = {"temp", "feels_like", "humidity", "pop", "pressure", "wind_speed", "wind_deg"}
 
-def _infer_mapping(columns):
-    cols = [_norm(c) for c in columns]
-    mapping = {}
-    used_idx = set()
-    for canon, alts in ALIASES.items():
-        for i, c in enumerate(cols):
-            if i in used_idx: 
-                continue
-            if c in alts:
-                mapping[columns[i]] = canon
-                used_idx.add(i)
-                break
-        if canon not in mapping.values():
-            for i, c in enumerate(cols):
-                if i in used_idx:
-                    continue
-                if any(c.startswith(a) or a in c for a in alts):
-                    mapping[columns[i]] = canon
-                    used_idx.add(i)
-                    break
-    return mapping
 
-def _load_csv_paths(data_dir: Path):
-    if not data_dir.is_dir():
-        raise FileNotFoundError(f"Directory not found: {data_dir}")
-    return [p for p in data_dir.rglob("*") if p.is_file() and p.suffix.lower() == ".csv"]
+def _resolve_name(col: str) -> str:
+    c = col.strip().lower().replace(" ", "_")
+    for k, alist in ALIASES.items():
+        if c == k or c in alist:
+            return k
+    return c  # keep unknowns (they won't be used unless shared)
 
-def _read_csv(path: Path) -> pd.DataFrame:
-    attempts = [
-        {},
-        {"engine":"python", "on_bad_lines":"skip"},
-        {"encoding":"latin-1"},
-        {"sep":";"},
-        {"sep":"|"},
-        {"sep":None, "engine":"python"},
-    ]
-    for kw in attempts:
-        try:
-            df = pd.read_csv(path, **kw)
-            if df is not None and df.shape[1] > 0:
-                df = _maybe_fix_header(df)
-                return df
-        except Exception:
-            continue
-    df = pd.read_csv(path, engine="python", on_bad_lines="skip")
-    return _maybe_fix_header(df)
 
-def _maybe_fix_header(df: pd.DataFrame) -> pd.DataFrame:
-    norm_cols = [_norm(c) for c in df.columns]
-    has_canonical = any(n in ALIASES for n in norm_cols)
-    looks_numeric_headers = all(str(c).isdigit() for c in df.columns)
-    if not has_canonical or looks_numeric_headers:
-        if len(df) > 1:
-            first = df.iloc[0].astype(str).tolist()
-            if any(any(ch.isalpha() for ch in cell) for cell in first):
-                df2 = df.copy()
-                df2.columns = [c.strip() for c in first]
-                df2 = df2.drop(df2.index[0]).reset_index(drop=True)
-                return df2
-    return df
+def _normalize_df(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty:
+        return pd.DataFrame()
 
-def _rename_to_canonical(df: pd.DataFrame) -> pd.DataFrame:
-    mapping = _infer_mapping(list(df.columns))
-    if mapping:
-        df = df.rename(columns=mapping)
-    return df
+    # Rename columns to canonical keys
+    rename_map = {c: _resolve_name(c) for c in df.columns}
+    ndf = df.rename(columns=rename_map).copy()
 
-def _normalize_types(df: pd.DataFrame) -> pd.DataFrame:
-    def to_float(col, scale=None):
-        if col not in df.columns: 
-            return
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        if scale == "pop01_to_pct":
-            df[col] = df[col].apply(lambda v: v*100 if pd.notna(v) and v <= 1 else v)
-    to_float("temperature")
-    to_float("feels_like")
-    to_float("humidity")
-    to_float("precipitation")
-    to_float("pop", scale="pop01_to_pct")
-    to_float("wind_speed")
-    return df
+    # Coerce numeric cols
+    for col in NUMERIC_COLS:
+        if col in ndf.columns:
+            ndf[col] = pd.to_numeric(ndf[col], errors="coerce")
 
-KEYS_FOR_SCORE = {"temperature","feels_like","humidity","precipitation","pop","wind_speed","weather","city","country"}
+    # Coerce pop to 0-100 integers (if likely in 0–1, multiply by 100)
+    if "pop" in ndf.columns:
+        # Detect fraction vs percent
+        sample = ndf["pop"].dropna()
+        if not sample.empty:
+            frac_like = (sample <= 1).mean() > 0.5
+            if frac_like:
+                ndf["pop"] = (ndf["pop"] * 100).round()
+        ndf["pop"] = ndf["pop"].round()
 
-def _row_score(row: pd.Series) -> int:
-    return sum(1 for k in KEYS_FOR_SCORE if k in row.index and pd.notna(row[k]) and str(row[k]).strip() != "")
+    # Ensure a weather description column
+    if "weather_desc" in ndf.columns:
+        ndf["weather_desc"] = ndf["weather_desc"].astype(str)
 
-def _row_is_valid(row: pd.Series) -> bool:
-    base = _row_score(row) >= 3
-    one_key = any(k in row.index and pd.notna(row.get(k)) and str(row.get(k)).strip() != "" 
-                  for k in ("temperature","feels_like","weather"))
-    return base and one_key
+    # Drop rows that are completely useless (no temp and no description)
+    if "temp" in ndf.columns or "weather_desc" in ndf.columns:
+        keep_cols = [c for c in ["temp", "weather_desc"] if c in ndf.columns]
+        ndf = ndf.dropna(subset=keep_cols, how="all")
 
-def _sample_valid_row(df: pd.DataFrame, tries: int = 30) -> pd.Series | None:
-    if df.empty:
+    return ndf.reset_index(drop=True)
+
+
+def _list_csvs(folder: Path):
+    return sorted([p for p in folder.glob("*.csv") if p.is_file()])
+
+
+def _sample_valid_row(df: pd.DataFrame, tries: int = 10) -> pd.Series | None:
+    if df is None or df.empty:
         return None
-    for _ in range(min(tries, len(df))):
-        row = df.sample(1).iloc[0]
-        if _row_is_valid(row):
+    candidates = df.dropna(how="all")
+    if candidates.empty:
+        return None
+    idxs = list(candidates.index)
+    for _ in range(min(tries, len(idxs))):
+        row = candidates.loc[random.choice(idxs)]
+        # require at least something meaningful
+        if any([
+            pd.notna(row.get("temp", None)),
+            str(row.get("weather_desc", "")).strip() != ""
+        ]):
             return row
-    best = None
-    best_score = -1
-    for _, row in df.iterrows():
-        s = _row_score(row)
-        if s > best_score:
-            best, best_score = row, s
-    return best
+    # fallback to first non-empty
+    return candidates.iloc[0]
 
-# =========================
-#   Weather + Recs
-# =========================
-def _classify_weather(row) -> str:
-    desc = str(row.get("weather","")).lower()
-    pop = row.get("pop", 0) or 0
-    try: pop = float(pop)
-    except Exception: pop = 0.0
-    if pop <= 1: pop *= 100
-    precip = row.get("precipitation", 0) or 0
-    try: precip = float(precip)
-    except Exception: precip = 0.0
-    wind = row.get("wind_speed", 0) or 0
-    try: wind = float(wind)
-    except Exception: wind = 0.0
-    temp = row.get("temperature", row.get("feels_like", 0)) or 0
-    try: temp = float(temp)
-    except Exception: temp = 0.0
 
-    if any(k in desc for k in ("thunder","storm","lightning")):
-        return "storm"
+def _recommendation(row: pd.Series, is_metric: bool = False) -> str:
+    desc = str(row.get("weather_desc", "")).lower()
+    temp = row.get("temp")
+    pop = row.get("pop", 0)
+    try:
+        temp = float(temp) if pd.notna(temp) else None
+    except Exception:
+        temp = None
+
+    if temp is not None and is_metric:
+        # input likely in °F in team CSVs; leave as-is unless explicitly metric
+        pass
+
+    if "snow" in desc or "sleet" in desc:
+        return "Bundle up and enjoy a cozy café."
+    if "rain" in desc or pop and float(pop) >= 40:
+        return "Grab an umbrella—maybe explore a museum."
+    if temp is not None and 60 <= float(temp) <= 85 and ("clear" in desc or "sun" in desc):
+        return "Perfect day for a park walk or outdoor café!"
+    return "Dress comfortably and have a great day."
+
+
+def _song_suggestion(row: pd.Series) -> tuple[str, str]:
+    """Return (title - artist, mood_tag) based on weather/precip."""
+    desc = str(row.get("weather_desc", "")).lower()
+    temp = row.get("temp")
+    pop = row.get("pop", 0)
+    try:
+        t = float(temp) if pd.notna(temp) else None
+    except Exception:
+        t = None
+
+    # Prioritize condition keywords
     if "snow" in desc:
-        return "snow"
-    if any(k in desc for k in ("rain","drizzle","shower")) or precip > 0 or pop >= 50:
-        return "rain"
-    if any(k in desc for k in ("fog","mist","haze","smoke")):
-        return "fog"
-    if wind >= 20 or "wind" in desc:
-        return "wind"
-    if temp >= 90:
-        return "hot"
-    if temp <= 40:
-        return "cold"
-    if any(k in desc for k in ("clear","sun")):
-        return "clear"
-    if "cloud" in desc or "overcast" in desc:
-        return "clouds"
-    return "default"
+        return ("Let It Snow! - Ella Fitzgerald", "Jazz")
+    if "rain" in desc or (pop and float(pop) >= 50):
+        return ("Umbrella - Rihanna", "Pop/R&B")
+    if "storm" in desc or "thunder" in desc:
+        return ("Stronger - Kanye West", "Hip-Hop")
+    if "cloud" in desc:
+        return ("Blinding Lights - The Weeknd", "Pop")
+    if "clear" in desc or "sun" in desc:
+        # temp-based happy picks
+        if t is not None and t >= 72:
+            return ("Happy - Pharrell Williams", "Happy Pop")
+        return ("Can’t Stop the Feeling! - Justin Timberlake", "Pop")
 
-def _recommend_parts(row):
-    """Return (msg, title, artist) so we can color the song part."""
-    category = _classify_weather(row)
-    title, artist = _pick_song(category, PREFERRED_GENRES)
-    msg = {
-        "rain":"Likely rain—umbrella/museum day.",
-        "snow":"Snowy—bundle up and watch for slick roads.",
-        "storm":"Storms around—limit outdoor plans.",
-        "fog":"Foggy—take it easy on the roads.",
-        "wind":"Windy—secure hats/umbrellas.",
-        "hot":"Very warm—hydrate and take shade breaks.",
-        "cold":"Chilly—layers recommended.",
-        "clear":"Sunny and pleasant—great day to be outside.",
-        "clouds":"Cloudy but fine for most plans.",
-        "default":"Dress comfortably.",
-    }.get(category, "Dress comfortably.")
-    return msg, title, artist
+    # Fallback
+    return ("Good as Hell - Lizzo", "R&B/Pop")
 
-def _recommend(row) -> str:
-    # Backwards-compatible string for any other callers
-    msg, title, artist = _recommend_parts(row)
-    return f"{msg}  ♪ “{title}” — {artist}"
 
-# =========================
-#   UI Frame
-# =========================
-class TeamCompareRandomFrame(ttk.Frame):
-    def __init__(self, parent, default_dir: str | Path | None = None, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self._init_theme()
+class TeamCompareRandomFrame(tk.Frame):
+    """
+    Themed comparison frame with:
+      - Directory picker
+      - Compare Random (shared columns only)
+      - Song suggestion
+      - Fun Mode (Quiz): “Which city is warmer today?” with score
+    """
 
-        if default_dir is None:
-            for guess in [Path("../Capstone_Team_8/data"), Path("Team Data"), Path("data")]:
-                if guess.exists():
-                    default_dir = str(guess.resolve()); break
-        self.dir_var = tk.StringVar(value=str(default_dir) if default_dir else "")
+    def __init__(self, master, default_dir: str | None = None):
+        super().__init__(master, bg=self._get_bg(master))
+        self._bg = self._get_bg(master)
+        self._fg = self._get_fg(master)
+        self._accent = ORANGE
 
-        self._build_ui()
+        self.dir_var = tk.StringVar(value=default_dir or "")
+        self.score = 0
+        self.rounds = 0
+        self.fun_cache = None  # store last left/right tuples for quiz reveal
 
-    # Theming to match the rest of the app (LARGER FONTS + ACCENT COLOR)
-    def _init_theme(self):
-        root = self.winfo_toplevel()
-        self._bg = getattr(root, "bg_color", "#FFFFFF")
-        self._fg = getattr(root, "fg_color", "#000000")
-        self._font = ("Helvetica", 14)  # bigger base font
-        self._heading_font = ("Helvetica", 15, "bold")
-        self._accent = "#FF8800"  # matches your app’s orange
+        # --- Header ---
+        top = tk.Frame(self, bg=self._bg)
+        top.pack(fill="x")
+        tk.Label(top, text="Team Data Folder:", bg=self._bg, fg=self._fg, font=(None, 12, "bold")).pack(side="left", padx=(4, 6))
+        self.ent_dir = ttk.Entry(top, textvariable=self.dir_var, width=70)
+        self.ent_dir.pack(side="left", padx=4, pady=8)
+        ttk.Button(top, text="Browse…", command=self._browse).pack(side="left", padx=4)
+        ttk.Button(top, text="Compare Random", command=self.compare_random).pack(side="left", padx=6)
 
-        style = ttk.Style(self)
-        try: style.theme_use("clam")
-        except Exception: pass
+        # Fun mode controls
+        fm = tk.Frame(self, bg=self._bg)
+        fm.pack(fill="x", pady=(4, 0))
+        self.fun_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(fm, text="Fun Mode (Quiz)", variable=self.fun_var, command=self._toggle_fun).pack(side="left", padx=4)
+        self.btn_round = ttk.Button(fm, text="Play Round", command=self.play_round, state="disabled")
+        self.btn_round.pack(side="left", padx=6)
+        self.lbl_score = tk.Label(fm, text="Score: 0 / 0", bg=self._bg, fg=self._fg, font=(None, 12))
+        self.lbl_score.pack(side="right", padx=6)
 
-        style.configure("TeamRandom.TFrame", background=self._bg)
-        style.configure("TeamRandom.TLabel", background=self._bg, foreground=self._fg, font=self._font)
-        style.configure("TeamRandom.TButton", font=self._font)
-        style.configure("TeamRandom.TEntry", fieldbackground=self._bg, foreground=self._fg, insertcolor=self._fg)
-        style.configure("TeamRandom.Treeview",
-                        background=self._bg, fieldbackground=self._bg, foreground=self._fg,
-                        rowheight=28, font=self._font)
-        style.configure("TeamRandom.Treeview.Heading",
-                        background=self._bg, foreground=self._fg, font=self._heading_font)
-        self.configure(style="TeamRandom.TFrame")
+        # Selected file labels
+        sel = tk.Frame(self, bg=self._bg)
+        sel.pack(fill="x", pady=(6, 4))
+        self.file_left = tk.Label(sel, text="Left: —", bg=self._bg, fg=self._fg, font=(None, 11, "bold"))
+        self.file_left.pack(side="left", padx=6)
+        self.file_right = tk.Label(sel, text="Right: —", bg=self._bg, fg=self._fg, font=(None, 11, "bold"))
+        self.file_right.pack(side="right", padx=6)
 
-    def _build_ui(self):
-        r = 0
-        ttk.Label(self, text="Team Data Folder:", style="TeamRandom.TLabel").grid(row=r, column=0, sticky="w", padx=(0,6), pady=(6,0))
-        ttk.Entry(self, textvariable=self.dir_var, width=60, style="TeamRandom.TEntry").grid(row=r, column=1, sticky="ew", pady=(6,0))
-        ttk.Button(self, text="Browse…", command=self._browse, style="TeamRandom.TButton").grid(row=r, column=2, padx=6, pady=(6,0))
-        ttk.Button(self, text="Compare Random", command=self._compare, style="TeamRandom.TButton").grid(row=r, column=3, pady=(6,0))
-        r += 1
+        # Table (Field + Left + Right)
+        table_frame = tk.Frame(self, bg=self._bg)
+        table_frame.pack(fill="both", expand=True, padx=6, pady=6)
 
-        self.status_var = tk.StringVar(value="")
-        ttk.Label(self, textvariable=self.status_var, style="TeamRandom.TLabel").grid(row=r, column=0, columnspan=4, sticky="w", pady=(6,6))
-        r += 1
+        cols = ("field", "left", "right")
+        self.tree = ttk.Treeview(table_frame, columns=cols, show="headings", height=10)
+        self.tree.heading("field", text="Field")
+        self.tree.heading("left",  text="Left")
+        self.tree.heading("right", text="Right")
+        self.tree.column("field", width=160, anchor="center")
+        self.tree.column("left",  width=360, anchor="center")
+        self.tree.column("right", width=360, anchor="center")
+        self.tree.pack(fill="both", expand=True)
 
-        self._tree_holder = ttk.Frame(self, style="TeamRandom.TFrame")
-        self._tree_holder.grid(row=r, column=0, columnspan=4, sticky="nsew")
-        r += 1
+        # Song / Recommendation area
+        info = tk.Frame(self, bg=self._bg)
+        info.pack(fill="x", pady=(4, 8))
+        self.lbl_reco = tk.Label(info, text="", bg=self._bg, fg=self._fg, font=(None, 12))
+        self.lbl_reco.pack(side="left", padx=6)
+        self.lbl_song = tk.Label(info, text="", bg=self._bg, fg=self._accent, font=(None, 14, "bold"))
+        self.lbl_song.pack(side="right", padx=6)
 
-        # Notes: bigger font + song tag color
-        self.notes = tk.Text(self, height=6, wrap="word", borderwidth=0, highlightthickness=1)
-        self.notes.grid(row=r, column=0, columnspan=4, sticky="nsew", pady=(10,10))
-        self.notes.configure(bg=self._bg, fg=self._fg, insertbackground=self._fg, font=self._font)
-        self.notes.tag_configure("song", foreground=self._accent, font=(self._font[0], self._font[1]+1, "bold"))
+        # Guess buttons (hidden unless fun mode & round active)
+        guess = tk.Frame(self, bg=self._bg)
+        guess.pack(fill="x", pady=(0, 4))
+        self.btn_guess_left  = ttk.Button(guess, text="Guess Left",  command=lambda: self._reveal_choice("left"))
+        self.btn_guess_right = ttk.Button(guess, text="Guess Right", command=lambda: self._reveal_choice("right"))
+        self.btn_guess_left.pack_forget()
+        self.btn_guess_right.pack_forget()
 
-        self.columnconfigure(1, weight=1)
-        self.rowconfigure(r-1, weight=1)
-        self.rowconfigure(r-2, weight=1)
+    # ---------------- UI helpers ----------------
+    def _get_bg(self, widget):
+        try:
+            return widget.cget("bg")
+        except Exception:
+            return "#2E3F4F"
 
-        self._build_tree(columns=["file","city","weather","temperature"])
+    def _get_fg(self, widget):
+        # Walk up to find a fg_color attr set by the app; fallback to white/black based on bg
+        node = widget
+        while node is not None:
+            fg = getattr(node, "fg_color", None)
+            if fg:
+                return fg
+            node = getattr(node, "master", None)
+        # fallback
+        bg = self._get_bg(widget)
+        return "#FFFFFF" if bg.lower() != "#ffffff" else "#000000"
 
     def _browse(self):
-        start = self.dir_var.get() or str(Path.home())
-        path = filedialog.askdirectory(title="Select Team Data folder", initialdir=start)
-        if path:
-            self.dir_var.set(path)
+        d = filedialog.askdirectory(initialdir=self.dir_var.get() or str(Path.home()))
+        if d:
+            self.dir_var.set(d)
 
-    def _build_tree(self, columns):
-        for child in self._tree_holder.winfo_children():
-            child.destroy()
-        self.tree = ttk.Treeview(self._tree_holder, columns=columns, show="headings", height=8, style="TeamRandom.Treeview")
-        for c in columns:
-            text = "File" if c == "file" else FRIENDLY.get(c, c.title())
-            self.tree.heading(c, text=text, anchor="w")
-            self.tree.column(c, width=160, stretch=True, anchor="w")
-        self.tree.pack(fill="both", expand=True, pady=(4,0))
-
-    def _compare(self):
-        try:
-            data_dir = Path(self.dir_var.get()).expanduser().resolve()
-            csvs = _load_csv_paths(data_dir)
-            if len(csvs) < 2:
-                self.status_var.set(f"Using: {data_dir} — found {len(csvs)} CSVs (need ≥ 2)")
-                messagebox.showwarning("Need more files", f"Found {len(csvs)} CSVs in {data_dir} (need ≥ 2).")
-                return
-
-            f1, f2 = random.sample(csvs, 2)
-            self.status_var.set(f"Using: {data_dir} — found {len(csvs)} CSVs | Picked: {f1.name} vs {f2.name}")
-
-            df1, df2 = _read_csv(f1), _read_csv(f2)
-            df1, df2 = _rename_to_canonical(df1), _rename_to_canonical(df2)
-            df1, df2 = _normalize_types(df1), _normalize_types(df2)
-
-            row1 = _sample_valid_row(df1)
-            row2 = _sample_valid_row(df2)
-            if row1 is None:
-                row1 = df1.iloc[0] if len(df1) else None
-            if row2 is None:
-                row2 = df2.iloc[0] if len(df2) else None
-            if row1 is None or row2 is None:
-                self.status_var.set("Picked files contained no usable rows.")
-                return
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+    # ---------------- Core actions ----------------
+    def compare_random(self):
+        folder = Path(self.dir_var.get().strip() or ".")
+        if not folder.exists():
+            messagebox.showerror("Folder not found", f"Cannot find: {folder}")
+            return
+        csvs = _list_csvs(folder)
+        if len(csvs) < 2:
+            messagebox.showwarning("Need more files", "Select a folder with at least two CSV files.")
             return
 
-        present1 = set(c for c in CANONICAL_ORDER if c in row1.index and str(row1.get(c,"")).strip() != "")
-        present2 = set(c for c in CANONICAL_ORDER if c in row2.index and str(row2.get(c,"")).strip() != "")
-        shared = ["file"] + [c for c in CANONICAL_ORDER if c in present1 & present2]
-        if len(shared) <= 1:
-            self.status_var.set("No common comparable fields between these two files.")
+        left_path, right_path = random.sample(csvs, 2)
+        df_l = _normalize_df(self._safe_read(left_path))
+        df_r = _normalize_df(self._safe_read(right_path))
+        row_l = _sample_valid_row(df_l)
+        row_r = _sample_valid_row(df_r)
+
+        if row_l is None or row_r is None:
+            messagebox.showwarning("No usable data", "Could not find valid rows in one or both files.")
             return
 
-        self._build_tree(shared)
+        # update labels
+        self.file_left.config(text=f"Left: {left_path.name}")
+        self.file_right.config(text=f"Right: {right_path.name}")
 
-        for i in self.tree.get_children():
-            self.tree.delete(i)
+        self._render_shared_table(row_l, row_r)
 
+        # show rec + song for the "nicer" city (choose by higher temp)
+        left_t  = float(row_l.get("temp")) if pd.notna(row_l.get("temp")) else float("-inf")
+        right_t = float(row_r.get("temp")) if pd.notna(row_r.get("temp")) else float("-inf")
+        best = row_l if left_t >= right_t else row_r
+
+        rec = _recommendation(best)
+        song, mood = _song_suggestion(best)
+        self.lbl_reco.config(text=rec)
+        self.lbl_song.config(text=f"♫ {song}  ({mood})")
+
+        # clear quiz state
+        self.fun_cache = None
+        self._hide_guess_buttons()
+
+    def _render_shared_table(self, row_l: pd.Series, row_r: pd.Series, hide_city_names: bool = False):
+        # Determine shared keys (keep preferred order, then extras)
+        shared = [c for c in PREFERRED_COL_ORDER if c in row_l.index and c in row_r.index]
+        extras = [c for c in row_l.index.intersection(row_r.index) if c not in shared]
+        cols = shared + extras
+        if not cols:
+            cols = sorted(list(row_l.index.intersection(row_r.index)))
+
+        # Clear table
+        for r in self.tree.get_children():
+            self.tree.delete(r)
+
+        # Render as Field → Left/Right rows
         def fmt(v, key):
-            if pd.isna(v): 
-                return ""
-            if key in ("temperature","feels_like"):
-                try: return f"{float(v):.0f}"
-                except Exception: return str(v)
-            if key in ("humidity","pop"):
-                try: return f"{float(v):.0f}"
-                except Exception: return str(v)
+            if pd.isna(v):
+                return "—"
+            if key == "pop":
+                try:
+                    return f"{int(round(float(v)))}%"
+                except Exception:
+                    return str(v)
+            if key in ("temp", "feels_like"):
+                try:
+                    return f"{round(float(v))}°"
+                except Exception:
+                    return str(v)
             return str(v)
 
-        vals1 = [f1.name] + [fmt(row1.get(k, ""), k) for k in shared[1:]]
-        vals2 = [f2.name] + [fmt(row2.get(k, ""), k) for k in shared[1:]]
-        self.tree.insert("", "end", values=vals1)
-        self.tree.insert("", "end", values=vals2)
+        for key in cols:
+            left_val  = fmt(row_l.get(key, ""), key)
+            right_val = fmt(row_r.get(key, ""), key)
+            label_key = key.replace("_", " ").title()
+            if hide_city_names and key in ("city", "state", "country"):
+                left_val = right_val = "???"
+            self.tree.insert("", "end", values=(label_key, left_val, right_val))
 
-        # Notes: insert with color tag for the song part
-        self.notes.delete("1.0","end")
-        for label, row in ((f1.stem, row1), (f2.stem, row2)):
-            msg, title, artist = _recommend_parts(row)
-            self.notes.insert("end", f"{label}: {msg}  ")
-            start = self.notes.index("end")
-            self.notes.insert("end", f"♪ “{title}” — {artist}\n")
-            self.notes.tag_add("song", start, "end-1c")
+    def _safe_read(self, path: Path) -> pd.DataFrame | None:
+        try:
+            return pd.read_csv(path)
+        except Exception:
+            # try with latin-1 as fallback
+            try:
+                return pd.read_csv(path, encoding="latin-1")
+            except Exception:
+                return None
+
+    # ---------------- Fun Mode (Quiz) ----------------
+    def _toggle_fun(self):
+        enabled = self.fun_var.get()
+        self.btn_round.config(state="normal" if enabled else "disabled")
+        if not enabled:
+            self._hide_guess_buttons()
+            self.fun_cache = None
+
+    def play_round(self):
+        """Start a quiz round: pick two files, sample rows, hide city names, and allow a guess."""
+        folder = Path(self.dir_var.get().strip() or ".")
+        csvs = _list_csvs(folder)
+        if len(csvs) < 2:
+            messagebox.showwarning("Need more files", "Select a folder with at least two CSV files.")
+            return
+
+        left_path, right_path = random.sample(csvs, 2)
+        df_l = _normalize_df(self._safe_read(left_path))
+        df_r = _normalize_df(self._safe_read(right_path))
+        row_l = _sample_valid_row(df_l)
+        row_r = _sample_valid_row(df_r)
+        if row_l is None or row_r is None:
+            messagebox.showwarning("No usable data", "Could not find valid rows in one or both files.")
+            return
+
+        # Update labels (hide city names in table; keep file names at top)
+        self.file_left.config(text=f"Left: {left_path.name}")
+        self.file_right.config(text=f"Right: {right_path.name}")
+        self._render_shared_table(row_l, row_r, hide_city_names=True)
+
+        # store for reveal
+        self.fun_cache = (left_path, right_path, row_l, row_r)
+        self._show_guess_buttons()
+        self.lbl_reco.config(text="Which city is warmer today?")
+        self.lbl_song.config(text="")
+
+    def _show_guess_buttons(self):
+        self.btn_guess_left.pack(side="left", padx=6)
+        self.btn_guess_right.pack(side="left", padx=6)
+
+    def _hide_guess_buttons(self):
+        self.btn_guess_left.pack_forget()
+        self.btn_guess_right.pack_forget()
+
+    def _reveal_choice(self, guess_side: str):
+        if not self.fun_cache:
+            return
+        left_path, right_path, row_l, row_r = self.fun_cache
+
+        left_t  = float(row_l.get("temp")) if pd.notna(row_l.get("temp")) else float("-inf")
+        right_t = float(row_r.get("temp")) if pd.notna(row_r.get("temp")) else float("-inf")
+        correct_side = "left" if left_t >= right_t else "right"
+        correct_row  = row_l if correct_side == "left" else row_r
+
+        self.rounds += 1
+        if guess_side == correct_side:
+            self.score += 1
+            msg = "✅ Correct!"
+        else:
+            msg = "❌ Not quite."
+
+        # Re-render table with city names revealed
+        self._render_shared_table(row_l, row_r, hide_city_names=False)
+
+        # Show recommendation and song
+        rec = _recommendation(correct_row)
+        song, mood = _song_suggestion(correct_row)
+        self.lbl_reco.config(text=f"{msg} {rec}")
+        self.lbl_song.config(text=f"♫ {song}  ({mood})")
+
+        self.lbl_score.config(text=f"Score: {self.score} / {self.rounds}")
+        self._hide_guess_buttons()
+        self.fun_cache = None

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from core.weather_api import WeatherAPI
 from core.temp_predictor import TempPredictor
 from gui import launch_gui
+import preferences  # NEW: read units/lang from saved prefs
 
 def main():
     # 1) Create & hide root so messageboxes have a valid parent
@@ -29,7 +30,7 @@ def main():
         root.destroy()
         sys.exit(1)
 
-    # 4) Validate key length
+    # 4) Validate key length (OpenWeather is usually 32 hex chars; keep your check)
     if len(API_KEY) != 32:
         messagebox.showerror(
             title="Invalid Key",
@@ -39,18 +40,23 @@ def main():
         root.destroy()
         sys.exit(1)
 
+    # Load saved preferences for units/lang so API matches the UI
+    prefs = preferences.load_preferences()
+    units = prefs.get("units", {}).get("temperature", "imperial")
+    lang  = prefs.get("language", "en")
+
     # 5) Test & launch
     try:
         print(f"Testing key: {API_KEY[:4]}...{API_KEY[-4:]}")
         resp = requests.get(
             "https://api.openweathermap.org/data/2.5/weather",
-            params={"q": "London", "appid": API_KEY, "units": "imperial"},
+            params={"q": "London", "appid": API_KEY, "units": units, "lang": lang},
             timeout=10
         )
         if resp.status_code == 200:
             print("Key works! Launching app…")
             root.destroy()
-            launch_gui(WeatherAPI(API_KEY), TempPredictor())
+            launch_gui(WeatherAPI(API_KEY, units=units, lang=lang), TempPredictor())
         else:
             messagebox.showerror(
                 title="API Rejected",
@@ -61,12 +67,18 @@ def main():
             sys.exit(1)
 
     except Exception as e:
-        messagebox.showerror(
-            title="Connection Failed",
-            message=str(e),
-            parent=root
-        )
-        root.destroy()
+        # Safe fallback if Tk context is gone
+        try:
+            messagebox.showerror(
+                title="Connection Failed",
+                message=str(e),
+                parent=root
+            )
+        except Exception:
+            print("Connection Failed:", e)
+        finally:
+            try: root.destroy()
+            except Exception: pass
         sys.exit(1)
 
 if __name__ == "__main__":

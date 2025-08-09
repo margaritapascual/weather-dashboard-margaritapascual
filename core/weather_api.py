@@ -13,10 +13,13 @@ class WeatherAPI:
 
     BASE_URL = "https://api.openweathermap.org/data/3.0"
 
-    def __init__(self, api_key: str, timeout: int = 10, max_retries: int = 3):
+    def __init__(self, api_key: str, timeout: int = 10, max_retries: int = 3,
+                 units: str = "imperial", lang: str = "en"):
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
+        self.units = units
+        self.lang = lang
 
         retry = Retry(
             total=max_retries,
@@ -28,9 +31,18 @@ class WeatherAPI:
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
+    # -------- public setters (used by GUI) ----------
+    def set_units(self, units: str):
+        self.units = units
+
+    def set_lang(self, lang: str):
+        self.lang = lang
+
+    # -------- internal request helper ----------
     def _request(self, endpoint: str, params: dict) -> Dict:
         params['appid'] = self.api_key
-        params['units'] = 'imperial'
+        params['units'] = self.units
+        params['lang']  = self.lang
         try:
             response = self.session.get(
                 f"{self.BASE_URL}/{endpoint}",
@@ -45,7 +57,7 @@ class WeatherAPI:
 
     def geocode(self, city: str) -> Tuple[float, float]:
         url = "https://api.openweathermap.org/data/2.5/weather"
-        params = {'q': city, 'appid': self.api_key}
+        params = {'q': city, 'appid': self.api_key, 'lang': self.lang}
         try:
             response = self.session.get(url, params=params, timeout=self.timeout)
             response.raise_for_status()
@@ -56,16 +68,24 @@ class WeatherAPI:
             raise ValueError(f"Geocoding error: {str(e)}")
 
     def get_forecast_bundle(self, lat: float, lon: float) -> Dict:
-        return self._request("onecall", {
+        bundle = self._request("onecall", {
             'lat': lat,
             'lon': lon,
             'exclude': 'minutely,hourly',
         })
+        # Compatibility: expose timezone offset on current as "timezone" (seconds)
+        try:
+            tz_off = bundle.get("timezone_offset", 0)
+            if "current" in bundle and isinstance(bundle["current"], dict):
+                bundle["current"]["timezone"] = tz_off
+        except Exception:
+            pass
+        return bundle
 
     # ─── Adapter methods for gui.py ──────────────────────────────────────────
 
     def get_current(self, city: str) -> Dict:
-        """Return the `current` dict for a given city name."""
+        """Return the `current` dict for a given city name (with timezone injected)."""
         lat, lon = self.geocode(city)
         return self.get_forecast_bundle(lat, lon)["current"]
 
@@ -81,6 +101,5 @@ class WeatherAPI:
         return bundle.get("alerts", [])
 
     def get_uv_index(self, coord: Dict) -> float:
-        """Return the UV index from a coord dict (lat/lon)."""
-        # The One Call "current" payload already includes "uvi"
+        """Return the UV index from a coord/current dict."""
         return coord.get("uvi", 0.0)
