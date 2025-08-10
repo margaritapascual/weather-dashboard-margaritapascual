@@ -44,10 +44,10 @@ Copy
 Edit
 python build.py
 🎬 Demo Video
-Add your ≤5-min video link here.
+https://www.loom.com/share/468fbee8180943d6b51778cb1ec955e7?sid=e2811482-44e8-44ef-be9e-7218c9d2e75e
 
 📑 Slide Deck
-Add your Google Slides / PDF link here.
+https://drive.google.com/file/d/1NQ1d0zgKoMLa52gQIWdw7V_KZXS2ybEv/view?usp=drive_link
 
 🔖 Versioning
 Current release: v1.0
