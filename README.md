@@ -67,14 +67,3 @@ main.py                # entry point
 If the app can’t find your key, check .env.
 
 If charts crowd, resize the window; axes are responsive.
-MD
-
-sql
-Copy
-Edit
-
-Then commit it:
-
-```bash
-git add README.md
-git commit -m "docs: final README for v1.0"a
